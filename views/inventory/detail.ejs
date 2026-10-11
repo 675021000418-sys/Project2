@@ -932,7 +932,7 @@
             errBox.classList.remove('d-none');
             return;
           }
-          alert(result.message);
+          await farmAlert(result.message, 'สำเร็จ', 'success');
           receiveModal.hide();
           window.location.reload();
         } catch (err) {
@@ -971,7 +971,7 @@
           result.data.deductions.forEach(d => {
             summaryMsg += `• ล็อต: ${d.lotNo} ตัดออก: ${d.deductedQty} (คงเหลือ: ${d.balanceAfter})\n`;
           });
-          alert(summaryMsg);
+          await farmAlert(summaryMsg, 'ตัดจ่ายสำเร็จ', 'success');
           issueModal.hide();
           window.location.reload();
         } catch (err) {
@@ -1026,7 +1026,7 @@
             errBox.classList.remove('d-none');
             return;
           }
-          alert(result.message);
+          await farmAlert(result.message, 'สำเร็จ', 'success');
           adjustModal.hide();
           window.location.reload();
         } catch (err) {
@@ -1066,9 +1066,14 @@
           return;
         }
 
-        if (!confirm(`ยืนยันการทำลายล็อต ${data.lot_no || ''} จำนวน ${data.qty} <%= item.base_unit %>?\nสถานะจะถูกบันทึกเป็น "ทำลายแล้ว" อย่างถาวร`)) {
-          return;
-        }
+        const confirmed = await farmConfirm({
+          title: 'ยืนยันการทำลายล็อตสินค้า',
+          message: `ยืนยันการทำลายล็อต ${data.lot_no || ''} จำนวน ${data.qty} <%= item.base_unit %>?\nสถานะจะถูกบันทึกเป็น "ทำลายแล้ว" อย่างถาวร`,
+          type: 'danger',
+          icon: '🔥',
+          confirmText: 'ยืนยันทำลาย'
+        });
+        if (!confirmed) return;
 
         try {
           const res = await fetch(`/app/inventory/${itemId}/dispose`, {
@@ -1082,7 +1087,7 @@
             errBox.classList.remove('d-none');
             return;
           }
-          alert(`✅ ${result.message}\nสถานะ: ทำลายแล้ว (Completed)`);
+          await farmAlert(`✅ ${result.message}\nสถานะ: ทำลายแล้ว (Completed)`, 'สำเร็จ', 'success');
           disposeModal.hide();
           window.location.reload();
         } catch (err) {
@@ -1114,7 +1119,7 @@
             errBox.classList.remove('d-none');
             return;
           }
-          alert(result.message);
+          await farmAlert(result.message, 'สำเร็จ', 'success');
           editModal.hide();
           window.location.reload();
         } catch (err) {
@@ -1127,18 +1132,25 @@
     <% if (can('inventory.update') || can('inventory.delete')) { %>
       async function toggleActiveStatus(id, enable) {
         const actionText = enable ? 'เปิดใช้งาน' : 'ลบ/ปิดการใช้งาน';
-        if (!confirm(`คุณต้องการ${actionText}รายการสินค้านี้ใช่หรือไม่?`)) return;
+        const confirmed = await farmConfirm({
+          title: `ยืนยัน${actionText}`,
+          message: `คุณต้องการ${actionText}รายการสินค้านี้ใช่หรือไม่?`,
+          type: enable ? 'info' : 'danger',
+          icon: enable ? '✅' : '⚠️',
+          confirmText: 'ยืนยัน'
+        });
+        if (!confirmed) return;
         try {
           const res = await fetch(`/app/inventory/${id}/toggle-status`, { method: 'POST' });
           const result = await res.json();
           if (!res.ok) {
-            alert(result.error || 'เกิดข้อผิดพลาด');
+            farmAlert(result.error || 'เกิดข้อผิดพลาด', 'ข้อผิดพลาด', 'danger');
             return;
           }
-          alert(result.message);
+          await farmAlert(result.message, 'สำเร็จ', 'success');
           window.location.reload();
         } catch (err) {
-          alert('เชื่อมต่อเซิร์ฟเวอร์ล้มเหลว');
+          farmAlert('เชื่อมต่อเซิร์ฟเวอร์ล้มเหลว', 'ข้อผิดพลาด', 'danger');
         }
       }
     <% } %>
