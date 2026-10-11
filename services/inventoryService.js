@@ -167,6 +167,30 @@ async function receiveStock({ itemId, lotNo, mfgDate, expDate, receivedDate, qty
       }
     }
 
+    // กติกาความถูกต้องของวันที่: ห้ามรับของที่หมดอายุย้อนหลัง หรือมีวันหมดอายุเท่ากับ/ก่อนวันที่รับเข้า
+    const effectiveReceivedDate = receivedDate ? new Date(receivedDate) : new Date();
+    effectiveReceivedDate.setHours(0, 0, 0, 0);
+
+    if (expDate) {
+      const parsedExpDate = new Date(expDate);
+      parsedExpDate.setHours(0, 0, 0, 0);
+      if (parsedExpDate <= effectiveReceivedDate) {
+        const err = new Error('วันหมดอายุ (exp_date) ต้องอยู่หลังจากวันที่รับเข้า (ห้ามรับของที่หมดอายุแล้วหรือหมดอายุย้อนหลัง)');
+        err.status = 400;
+        throw err;
+      }
+    }
+
+    if (mfgDate) {
+      const parsedMfgDate = new Date(mfgDate);
+      parsedMfgDate.setHours(0, 0, 0, 0);
+      if (parsedMfgDate > effectiveReceivedDate) {
+        const err = new Error('วันผลิต (mfg_date) ต้องไม่อยู่หลังวันที่รับเข้าสินค้า');
+        err.status = 400;
+        throw err;
+      }
+    }
+
     // ตรวจสอบว่าล็อตนี้มีอยู่แล้วหรือไม่
     const existingBatchRes = await client.query(
       'SELECT id, qty_remaining, qty_received FROM inventory_batches WHERE item_id = $1 AND lot_no = $2 FOR UPDATE',

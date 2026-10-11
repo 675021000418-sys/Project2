@@ -119,10 +119,20 @@ BEGIN
     IF NEW.lot_no IS NULL OR TRIM(NEW.lot_no) = '' THEN
       RAISE EXCEPTION 'หมวด % ต้องระบุหมายเลขล็อต (lot_no)', v_category;
     END IF;
-    IF NEW.exp_date IS NULL THEN
-      RAISE EXCEPTION 'หมวด % ต้องระบุวันหมดอายุ (exp_date)', v_category;
+    IF NEW.exp_date IS NOT NULL AND NEW.exp_date <= NEW.received_date THEN
+      RAISE EXCEPTION 'วันหมดอายุ (exp_date: %) ต้องอยู่หลังจากวันที่รับเข้า (received_date: %)', NEW.exp_date, NEW.received_date;
     END IF;
   END IF;
+
+  -- กติกาสำหรับทุกล็อตที่มีวันหมดอายุ: ห้ามหมดอายุย้อนหลังจากวันที่รับเข้า
+  IF NEW.exp_date IS NOT NULL AND NEW.exp_date <= NEW.received_date THEN
+    RAISE EXCEPTION 'วันหมดอายุ (exp_date) ต้องอยู่หลังจากวันที่รับเข้า (received_date)';
+  END IF;
+
+  IF NEW.mfg_date IS NOT NULL AND NEW.mfg_date > NEW.received_date THEN
+    RAISE EXCEPTION 'วันผลิต (mfg_date) ต้องไม่อยู่หลังวันที่รับเข้า (received_date)';
+  END IF;
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;

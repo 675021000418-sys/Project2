@@ -60,10 +60,15 @@ INSERT INTO permissions (key, description, module) VALUES
 ('inventory.receive', 'รับวัสดุ/เวชภัณฑ์เข้าคลัง (สร้างล็อต)', 'inventory'),
 ('inventory.issue', 'จ่ายวัสดุ/เวชภัณฑ์ออกจากคลัง (FEFO/FIFO)', 'inventory'),
 ('inventory.adjust', 'ปรับยอดสต็อก/ตรวจนับประจำงวด', 'inventory'),
+('inventory.dispose', 'บันทึกทำลายสินค้าและเวชภัณฑ์หมดอายุ', 'inventory'),
+('inventory.export', 'ส่งออกรายงานสต็อก (Excel/PDF)', 'inventory'),
+('inventory.audit', 'ตรวจสอบประวัติสต็อกและการเคลื่อนไหว', 'inventory'),
+('batch.manage', 'จัดการและตรวจสอบล็อตสินค้า', 'inventory'),
 -- Log
 ('log.view', 'ดู Audit Log', 'log'),
 -- รายงาน
-('report.usage', 'ดูรายงานการใช้', 'report')
+('report.usage', 'ดูรายงานการใช้', 'report'),
+('report.export', 'ดาวน์โหลดรายงานสรุปประจำเดือน', 'report')
 ON CONFLICT (key) DO NOTHING;
 
 -- ผูก Permissions ให้ Admin (ทุกสิทธิ์)

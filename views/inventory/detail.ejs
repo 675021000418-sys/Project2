@@ -455,16 +455,20 @@
                 <input type="number" step="0.01" name="qty" class="form-control" required min="0.01">
               </div>
               <div class="row g-2 mb-3">
-                <div class="col-6">
+                <div class="col-4">
+                  <label class="form-label fw-semibold">วันที่รับเข้า</label>
+                  <input type="date" name="received_date" id="receive_date_input" class="form-control" value="<%= new Date().toISOString().split('T')[0] %>">
+                </div>
+                <div class="col-4">
                   <label class="form-label fw-semibold">วันผลิต (MFG Date)</label>
                   <input type="date" name="mfg_date" class="form-control">
                 </div>
-                <div class="col-6">
+                <div class="col-4">
                   <label class="form-label fw-semibold">
                     วันหมดอายุ (EXP Date)
                     <% if (item.category !== 'feed') { %><span class="text-danger">* (จำเป็น)</span><% } %>
                   </label>
-                  <input type="date" name="exp_date" class="form-control" <%= item.category !== 'feed' ? 'required' : '' %>>
+                  <input type="date" name="exp_date" id="receive_exp_date_input" class="form-control" <%= item.category !== 'feed' ? 'required' : '' %>>
                 </div>
               </div>
               <div class="mb-3">
@@ -895,6 +899,26 @@
         const form = document.getElementById('receiveForm');
         const data = Object.fromEntries(new FormData(form).entries());
         const errBox = document.getElementById('receive-error');
+
+        // ตรวจสอบวันหมดอายุต้องไม่ย้อนหลังจากวันที่รับเข้า
+        if (data.exp_date) {
+          const recDateStr = data.received_date || new Date().toISOString().split('T')[0];
+          if (data.exp_date <= recDateStr) {
+            errBox.textContent = 'วันหมดอายุ (EXP Date) ต้องอยู่หลังจากวันที่รับเข้า (ห้ามรับของที่หมดอายุแล้วหรือหมดอายุย้อนหลัง)';
+            errBox.classList.remove('d-none');
+            return;
+          }
+        }
+
+        // ตรวจสอบวันผลิตต้องไม่อยู่หลังวันที่รับเข้า
+        if (data.mfg_date) {
+          const recDateStr = data.received_date || new Date().toISOString().split('T')[0];
+          if (data.mfg_date > recDateStr) {
+            errBox.textContent = 'วันผลิต (MFG Date) ต้องไม่อยู่หลังวันที่รับเข้าสินค้า';
+            errBox.classList.remove('d-none');
+            return;
+          }
+        }
 
         try {
           const res = await fetch(`/app/inventory/${itemId}/receive`, {
