@@ -226,21 +226,24 @@ async function renderItemDetailPage(req, res, next) {
     const item = itemRes.rows[0];
 
     // ล็อตสินค้าเรียงตาม FEFO (ยา/วัคซีน) หรือ FIFO (อาหาร)
+    // ล็อตที่ทำลายแล้วจนยอดเป็น 0 จะไม่แสดงในรายการล็อตคงเหลือ หรือสามารถแยกแสดงได้
     const batchesRes = await pool.query(
-      `SELECT *,
+      `SELECT b.*,
         CASE 
-          WHEN qty_remaining <= 0 THEN 'empty'
-          WHEN exp_date IS NOT NULL AND exp_date < CURRENT_DATE THEN 'expired'
-          WHEN exp_date IS NOT NULL AND exp_date <= CURRENT_DATE + INTERVAL '30 days' THEN 'near_exp'
+          WHEN EXISTS (SELECT 1 FROM disposal_records d WHERE d.batch_id = b.id) AND b.qty_remaining <= 0 THEN 'disposed'
+          WHEN b.qty_remaining <= 0 THEN 'empty'
+          WHEN b.exp_date IS NOT NULL AND b.exp_date < CURRENT_DATE THEN 'expired'
+          WHEN b.exp_date IS NOT NULL AND b.exp_date <= CURRENT_DATE + INTERVAL '30 days' THEN 'near_exp'
           ELSE 'normal'
         END AS lot_status
-       FROM inventory_batches 
-       WHERE item_id = $1 
+       FROM inventory_batches b
+       WHERE b.item_id = $1 
+         AND NOT (EXISTS (SELECT 1 FROM disposal_records d WHERE d.batch_id = b.id) AND b.qty_remaining <= 0)
        ORDER BY 
-         CASE WHEN exp_date IS NULL THEN 1 ELSE 0 END,
-         exp_date ASC, 
-         received_date ASC, 
-         id ASC`,
+         CASE WHEN b.exp_date IS NULL THEN 1 ELSE 0 END,
+         b.exp_date ASC, 
+         b.received_date ASC, 
+         b.id ASC`,
       [itemId]
     );
 

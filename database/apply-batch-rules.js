@@ -28,13 +28,15 @@ async function updateTrigger() {
           END IF;
         END IF;
 
-        -- กติกาสำหรับทุกล็อตที่มีวันหมดอายุ: ห้ามหมดอายุย้อนหลังจากวันที่รับเข้า
-        IF NEW.exp_date IS NOT NULL AND NEW.exp_date <= NEW.received_date THEN
-          RAISE EXCEPTION 'วันหมดอายุ (exp_date) ต้องอยู่หลังจากวันที่รับเข้า (received_date)';
-        END IF;
+        -- กติกาสำหรับทุกล็อตที่มีวันหมดอายุ: ห้ามรับของที่มีอายุสต็อกย้อนหลังจากวันที่รับเข้า (ตรวจเฉพาะตอนรับเข้าใหม่ หรือเมื่อแก้ไขวันที่)
+        IF (TG_OP = 'INSERT' OR (NEW.exp_date IS DISTINCT FROM OLD.exp_date) OR (NEW.received_date IS DISTINCT FROM OLD.received_date)) THEN
+          IF NEW.exp_date IS NOT NULL AND NEW.exp_date <= NEW.received_date THEN
+            RAISE EXCEPTION 'วันหมดอายุ (exp_date) ต้องอยู่หลังจากวันที่รับเข้า (received_date)';
+          END IF;
 
-        IF NEW.mfg_date IS NOT NULL AND NEW.mfg_date > NEW.received_date THEN
-          RAISE EXCEPTION 'วันผลิต (mfg_date) ต้องไม่อยู่หลังวันที่รับเข้า (received_date)';
+          IF NEW.mfg_date IS NOT NULL AND NEW.mfg_date > NEW.received_date THEN
+            RAISE EXCEPTION 'วันผลิต (mfg_date) ต้องไม่อยู่หลังวันที่รับเข้า (received_date)';
+          END IF;
         END IF;
 
         RETURN NEW;
