@@ -60,7 +60,8 @@
               </div>
               <div class="mb-3">
                 <label class="form-label">รหัสผ่าน <span class="text-danger">*</span></label>
-                <input type="password" class="form-control" name="password" required placeholder="อย่างน้อย 6 ตัวอักษร">
+                <input type="password" class="form-control" name="password" minlength="6" required placeholder="รหัสผ่านอย่างน้อย 6 หลัก">
+                <div class="form-text text-muted">🔒 รหัสผ่านต้องมีความยาวตั้งแต่ 6 ตัวอักษรขึ้นไป</div>
               </div>
               <div class="mb-3">
                 <label class="form-label">บทบาท (Role) <span class="text-danger">*</span></label>
@@ -184,6 +185,11 @@
         const payload = Object.fromEntries(data);
         if (!payload.username || !payload.password || !payload.email || !payload.full_name || !payload.roleId) {
           alert('กรุณากรอกข้อมูลให้ครบถ้วนทุกช่อง');
+          return;
+        }
+
+        if (payload.password.length < 6) {
+          alert('รหัสผ่านต้องมีความยาวอย่างน้อย 6 หลักขึ้นไป');
           return;
         }
 

@@ -395,7 +395,11 @@ const createUser = async (req, res) => {
   const bcrypt = require('bcrypt');
 
   if (!username || !email || !password || !full_name) {
-    return res.status(400).json({ error: 'กรุณากรอกข้อมูลให้ครบถ้วน' });
+    return res.status(400).json({ error: 'กรุณากรอกข้อมูลให้ครบถ้วนทุกช่อง' });
+  }
+
+  if (password.length < 6) {
+    return res.status(400).json({ error: 'รหัสผ่านต้องมีความยาวอย่างน้อย 6 หลักขึ้นไป' });
   }
 
   try {
