@@ -771,6 +771,13 @@
           return;
         }
 
+        const maxAvailable = parseFloat("<%= item.total_usable_stock || 0 %>");
+        if (parseFloat(data.qty) > maxAvailable) {
+          errBox.textContent = `ของในสต็อกไม่เพียงพอ (ต้องการเบิก: ${parseFloat(data.qty).toLocaleString()} <%= item.base_unit %>, มีพร้อมใช้: ${maxAvailable.toLocaleString()} <%= item.base_unit %>)`;
+          errBox.classList.remove('d-none');
+          return;
+        }
+
         btn.disabled = true;
         btn.innerHTML = '⏳ กำลังส่งข้อมูล...';
 

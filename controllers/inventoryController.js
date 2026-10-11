@@ -664,13 +664,31 @@ async function submitRequisition(req, res, next) {
       return res.status(400).json({ error: 'กรุณาระบุโรงเรือนและจำนวนที่ต้องการเบิกให้ถูกต้อง' });
     }
 
-    // ตรวจสอบสินค้า
-    const itemCheck = await pool.query('SELECT name, is_active FROM items WHERE id = $1', [itemId]);
+    // ตรวจสอบสินค้าและสต็อกพร้อมใช้
+    const itemCheck = await pool.query(
+      `SELECT i.name, i.base_unit, i.is_active, COALESCE(v.total_usable_stock, 0) as total_usable_stock
+       FROM items i
+       LEFT JOIN v_item_stock v ON i.id = v.id
+       WHERE i.id = $1`,
+      [itemId]
+    );
+
     if (itemCheck.rows.length === 0) {
       return res.status(404).json({ error: 'ไม่พบรายการสินค้า' });
     }
-    if (!itemCheck.rows[0].is_active) {
+
+    const item = itemCheck.rows[0];
+    if (!item.is_active) {
       return res.status(400).json({ error: 'สินค้านี้ถูกปิดใช้งานอยู่ ไม่สามารถยื่นขอเบิกได้' });
+    }
+
+    const requestQty = parseFloat(qty);
+    const usableStock = parseFloat(item.total_usable_stock);
+
+    if (requestQty > usableStock) {
+      return res.status(400).json({
+        error: `ของในสต็อกไม่เพียงพอ (ต้องการเบิก: ${requestQty.toLocaleString()} ${item.base_unit}, มีพร้อมใช้: ${usableStock.toLocaleString()} ${item.base_unit})`
+      });
     }
 
     // บันทึกลง supply_requests

@@ -57,7 +57,14 @@ async function approveRequest(req, res, next) {
     const approverId = req.session.userId;
     const { note } = req.body;
 
-    const reqCheck = await pool.query('SELECT * FROM supply_requests WHERE id = $1', [requestId]);
+    const reqCheck = await pool.query(
+      `SELECT sr.*, i.name as item_name, i.base_unit, COALESCE(v.total_usable_stock, 0) as total_usable_stock
+       FROM supply_requests sr
+       JOIN items i ON sr.item_id = i.id
+       LEFT JOIN v_item_stock v ON i.id = v.id
+       WHERE sr.id = $1`,
+      [requestId]
+    );
     if (reqCheck.rows.length === 0) {
       return res.status(404).json({ error: 'ไม่พบรายการคำขอเบิก' });
     }
@@ -65,6 +72,15 @@ async function approveRequest(req, res, next) {
     const currentReq = reqCheck.rows[0];
     if (currentReq.status !== 'pending') {
       return res.status(400).json({ error: `ไม่สามารถอนุมัติได้เนื่องจากสถานะปัจจุบันคือ ${currentReq.status}` });
+    }
+
+    const requestedQty = parseFloat(currentReq.qty);
+    const usableStock = parseFloat(currentReq.total_usable_stock);
+
+    if (requestedQty > usableStock) {
+      return res.status(400).json({
+        error: `ของในสต็อกไม่เพียงพอสำหรับการอนุมัติ (ขอเบิก: ${requestedQty.toLocaleString()} ${currentReq.base_unit}, มีพร้อมใช้: ${usableStock.toLocaleString()} ${currentReq.base_unit})`
+      });
     }
 
     await pool.query(
