@@ -13,6 +13,26 @@
       background-color: #d1e7dd !important;
       border-left: 4px solid var(--green-700) !important;
     }
+    .batch-row-empty {
+      background-color: rgba(108, 117, 125, 0.08);
+      color: #6c757d;
+      opacity: 0.85;
+    }
+
+    [data-bs-theme="dark"] .highlight-next-deduct {
+      background-color: rgba(45, 106, 79, 0.35) !important;
+      border-left: 4px solid #52B788 !important;
+      color: #e2e8f0 !important;
+    }
+    [data-bs-theme="dark"] .batch-row-empty {
+      background-color: rgba(255, 255, 255, 0.03) !important;
+      color: #94a3b8 !important;
+      opacity: 0.75;
+    }
+    [data-bs-theme="dark"] .batch-row-empty td {
+      color: #94a3b8 !important;
+      background-color: transparent !important;
+    }
   </style>
 </head>
 <body>
@@ -236,7 +256,19 @@
                 </tr>
               <% } %>
               <% batches.forEach(b => { %>
-                <tr class="<%= b.id === nextLotIdToDeduct ? 'highlight-next-deduct' : (b.qty_remaining <= 0 || b.lot_status === 'empty' ? 'table-light text-muted' : (b.lot_status === 'expired' ? 'table-danger' : (b.lot_status === 'near_exp' ? 'table-warning' : ''))) %>">
+                <%
+                  let rowClass = '';
+                  if (b.id === nextLotIdToDeduct) {
+                    rowClass = 'highlight-next-deduct';
+                  } else if (b.qty_remaining <= 0 || b.lot_status === 'empty') {
+                    rowClass = 'batch-row-empty';
+                  } else if (b.lot_status === 'expired') {
+                    rowClass = 'table-danger';
+                  } else if (b.lot_status === 'near_exp') {
+                    rowClass = 'table-warning';
+                  }
+                %>
+                <tr class="<%= rowClass %>">
                   <td>
                     <span class="font-monospace fw-bold"><%= b.lot_no %></span>
                     <% if (b.id === nextLotIdToDeduct) { %>

@@ -127,7 +127,7 @@ INSERT INTO houses (name, animal_type, capacity, status) VALUES
 ('โรงเรือน A', 'ไก่', 1000, 'active'),
 ('โรงเรือน B', 'หมู', 500, 'active'),
 ('โรงเรือน C', 'เป็ด', 800, 'active')
-ON CONFLICT DO NOTHING;
+ON CONFLICT (name) DO NOTHING;
 
 -- ผูก Users กับ Houses
 -- head1 ดูแลโรงเรือน A และ B

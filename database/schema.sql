@@ -53,7 +53,7 @@ CREATE INDEX IF NOT EXISTS idx_users_role_id ON users (role_id);
 -- ตาราง houses (โรงเรือน)
 CREATE TABLE IF NOT EXISTS houses (
   id SERIAL PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
+  name VARCHAR(100) UNIQUE NOT NULL,
   animal_type VARCHAR(50),
   capacity INTEGER,
   status VARCHAR(20) DEFAULT 'active',
