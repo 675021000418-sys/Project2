@@ -1,0 +1,127 @@
+<%- include('layout', {
+  pageTitle: 'Permissions',
+  fullName: fullName,
+  role: role,
+  activeMenu: 'permissions',
+  body: `
+    <h2>จัดการ Permissions</h2>
+    <p class="text-muted">เพิ่ม แก้ไข ลบ สิทธิ์ในระบบ</p>
+
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">รายการ Permissions</h5>
+        <button class="btn btn-primary btn-sm" onclick="showCreatePermissionModal()">+ เพิ่ม Permission</button>
+      </div>
+      <div class="card-body">
+        <table class="table" id="permissions-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Key</th>
+              <th>คำอธิบาย</th>
+              <th>Module</th>
+              <th>จัดการ</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Modal เพิ่ม Permission -->
+    <div class="modal fade" id="createPermissionModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">เพิ่ม Permission ใหม่</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <form id="createPermissionForm">
+              <div class="mb-3">
+                <label class="form-label">Permission Key</label>
+                <input type="text" class="form-control" name="key" placeholder="เช่น report.usage" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">คำอธิบาย</label>
+                <input type="text" class="form-control" name="description" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Module</label>
+                <input type="text" class="form-control" name="module" placeholder="เช่น report" required>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="button" class="btn btn-primary" onclick="createPermission()">บันทึก</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `,
+  scripts: `
+    <script>
+      async function loadPermissions() {
+        const res = await fetch('/api/admin/permissions');
+        const data = await res.json();
+        const tbody = document.querySelector('#permissions-table tbody');
+        tbody.innerHTML = data.map(p => 
+          '<tr>' +
+            '<td>' + p.id + '</td>' +
+            '<td><code>' + p.key + '</code></td>' +
+            '<td>' + p.description + '</td>' +
+            '<td>' + p.module + '</td>' +
+            '<td>' +
+              '<button class="btn btn-sm btn-danger" onclick="deletePermission(' + p.id + ')">ลบ</button>' +
+            '</td>' +
+          '</tr>'
+        ).join('');
+      }
+
+      async function createPermission() {
+        const form = document.getElementById('createPermissionForm');
+        const data = new FormData(form);
+        const res = await fetch('/api/admin/permissions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(Object.fromEntries(data))
+        });
+        if (res.ok) {
+          const modalEl = document.getElementById('createPermissionModal');
+          const modal = bootstrap.Modal.getInstance(modalEl);
+          if (modal) modal.hide();
+          form.reset();
+          loadPermissions();
+        } else {
+          alert((await res.json()).error);
+        }
+      }
+
+      async function deletePermission(id) {
+        const confirmed = await farmConfirm({
+          title: 'ยืนยันการลบ Permission',
+          message: 'คุณแน่ใจหรือไม่ว่าต้องการลบ Permission นี้ออกจากระบบ?',
+          type: 'danger',
+          icon: '🗑️',
+          confirmText: 'ลบข้อมูล'
+        });
+        if (!confirmed) return;
+
+        const res = await fetch('/api/admin/permissions/' + id, { method: 'DELETE' });
+        if (res.ok) {
+          loadPermissions();
+        } else {
+          const err = await res.json();
+          farmAlert(err.error || 'เกิดข้อผิดพลาดในการลบ Permission', 'ลบไม่สำเร็จ', 'danger');
+        }
+      }
+
+      function showCreatePermissionModal() {
+        new bootstrap.Modal(document.getElementById('createPermissionModal')).show();
+      }
+
+      loadPermissions();
+    </script>
+  `
+}) %>

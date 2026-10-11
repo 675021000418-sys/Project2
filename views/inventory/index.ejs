@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= pageTitle %> - ระบบบริหารฟาร์ม</title>
+  <!-- Bootstrap 5 CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- ธีมธรรมชาติ (Natural Green Theme) -->
+  <link rel="stylesheet" href="/css/theme.css">
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .filter-card {
+      background-color: #ffffff;
+      border-radius: var(--card-radius);
+      box-shadow: var(--card-shadow);
+      border: 1px solid rgba(45, 106, 79, 0.08);
+      padding: 1.25rem;
+    }
+    .stock-progress {
+      height: 7px;
+      border-radius: 4px;
+      background-color: #e9ecef;
+    }
+    .category-nav .nav-link {
+      color: #4a5568;
+      font-weight: 500;
+      border-radius: 20px;
+      padding: 0.4rem 1rem;
+      margin-right: 0.5rem;
+      border: 1px solid transparent;
+    }
+    .category-nav .nav-link:hover {
+      background-color: var(--green-100);
+      color: var(--green-900);
+    }
+    .category-nav .nav-link.active {
+      background-color: var(--green-700);
+      color: #ffffff;
+    }
+    /* Mobile Card Layout */
+    @media (max-width: 767.98px) {
+      .desktop-table { display: none !important; }
+      .mobile-cards { display: block !important; }
+    }
+    @media (min-width: 768px) {
+      .mobile-cards { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <!-- แถบผู้ดูแลระบบ (หากเป็น Admin หรือมีสิทธิ์จัดการระบบ) -->
+  <% 
+    const hasAdminPerm = role === 'admin' || (typeof can === 'function' && (can('acl.manage') || can('user.read') || can('role.read') || can('endpoint.manage') || can('permission.read') || can('log.view')));
+  %>
+  <% if (hasAdminPerm) { %>
+    <div class="admin-mode-bar">
+      <span>🛡️ <strong>โหมดผู้ดูแลระบบ (Admin Mode)</strong> - คุณสามารถจัดการคลังและสิทธิ์ได้ทุกฟังก์ชัน</span>
+      <a href="/admin/dashboard" class="text-white text-decoration-underline small">ไปยังหน้า Admin Panel &rarr;</a>
+    </div>
+  <% } %>
+
+  <!-- Topbar สีขาว -->
+  <header class="app-topbar sticky-top">
+    <div class="container d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center gap-3">
+        <a class="navbar-brand d-flex align-items-center gap-2 text-decoration-none" href="/dashboard">
+          <span class="fs-4">🌿</span>
+          <span class="fw-bold" style="color: var(--green-900); font-size: 1.25rem;">ระบบบริหารฟาร์ม</span>
+        </a>
+        <div class="vr d-none d-md-block" style="height: 24px;"></div>
+        <nav class="d-none d-md-flex align-items-center gap-2">
+          <a href="/dashboard" class="text-decoration-none text-muted px-2 py-1">หน้าหลัก</a>
+          <a href="/app/inventory" class="text-decoration-none fw-bold px-2 py-1" style="color: var(--green-700);">คลังวัสดุและเวชภัณฑ์</a>
+          <a href="/app/requests" class="text-decoration-none text-muted px-2 py-1">📋 รายการคำขอเบิก</a>
+          <% if (hasAdminPerm) { %>
+            <a href="/admin/dashboard" class="text-decoration-none text-muted px-2 py-1">Admin Panel</a>
+          <% } %>
+        </nav>
+      </div>
+
+      <div class="d-flex align-items-center gap-3">
+        <div class="text-end">
+          <span class="fw-semibold text-dark d-none d-sm-inline me-1"><%= fullName %></span>
+          <% if (role === 'admin') { %>
+            <span class="badge-role badge-role-admin">🛡️ Admin</span>
+          <% } else if (role === 'owner') { %>
+            <span class="badge-role badge-role-owner">👑 เจ้าของฟาร์ม</span>
+          <% } else if (role === 'head') { %>
+            <span class="badge-role badge-role-head">👨‍🌾 หัวหน้าโรงเรือน</span>
+          <% } else { %>
+            <span class="badge-role badge-role-worker">🌱 คนงาน</span>
+          <% } %>
+        </div>
+
+        <!-- ปุ่มสลับโหมดมืด/สว่าง -->
+        <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="สลับโหมดมืด/สว่าง">
+          🌙
+        </button>
+
+        <form method="POST" action="/logout" class="m-0">
+          <button type="submit" class="btn btn-secondary btn-sm">🚪 ล็อกเอาท์</button>
+        </form>
+      </div>
+    </div>
+  </header>
+
+  <!-- เนื้อหาหลัก -->
+  <main class="container my-4">
+    <!-- กล่องแจ้งเตือนรายการที่มีปัญหา (สีส้ม/แดง) -->
+    <% if (alertItems && alertItems.length > 0) { %>
+      <div class="alert alert-warning border-start border-4 border-warning mb-4 shadow-sm" role="alert">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="fs-4">⚠️</span>
+          <strong class="fs-6 text-dark">แจ้งเตือนสถานะคลังที่ต้องดำเนินการเร่งด่วน (<%= alertItems.length %> รายการ):</strong>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          <% alertItems.forEach(ai => { %>
+            <a href="/app/inventory/<%= ai.id %>" class="btn btn-sm btn-light border text-start text-dark text-decoration-none shadow-xs">
+              <span class="fw-bold font-monospace"><%= ai.item_code %></span>: <%= ai.name %>
+              <% if (parseFloat(ai.expired_stock) > 0) { %>
+                <span class="badge bg-danger ms-1">มีล็อตหมดอายุ</span>
+              <% } else if (ai.stock_status === 'out_of_stock') { %>
+                <span class="badge bg-danger ms-1">หมดสต็อก</span>
+              <% } else if (ai.stock_status === 'low_stock') { %>
+                <span class="badge bg-warning text-dark ms-1">สต็อกต่ำกว่าเกณฑ์</span>
+              <% } else { %>
+                <span class="badge bg-warning text-dark ms-1">ใกล้หมดอายุ</span>
+              <% } %>
+            </a>
+          <% }); %>
+        </div>
+      </div>
+    <% } %>
+
+    <!-- ส่วนหัวหน้าเว็บและปุ่มสร้างรายการใหม่ (แสดงเฉพาะผู้มีสิทธิ์ inventory.create) -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+      <div>
+        <h2 class="mb-1">📦 คลังวัสดุและเวชภัณฑ์</h2>
+        <p class="text-muted mb-0">
+          ระบบตรวจสอบสต็อกคงเหลือ ล็อตหมดอายุ และการเบิกจ่าย FEFO / FIFO
+        </p>
+      </div>
+      <div>
+        <% if (can('inventory.create')) { %>
+          <button class="btn btn-primary" onclick="showCreateModal()">
+            + เพิ่มรายการวัสดุ/เวชภัณฑ์
+          </button>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- สรุปสถานะสต็อกภาพรวม 4 การ์ด -->
+    <div class="row g-3 mb-4">
+      <div class="col-sm-6 col-lg-3">
+        <div class="card h-100 p-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <div class="text-muted small">รายการทั้งหมด</div>
+              <h3 class="fw-bold mb-0 mt-1"><%= stats.total_items %></h3>
+            </div>
+            <div class="fs-1">📋</div>
+          </div>
+          <div class="mt-2 small text-muted">รวม 3 หมวดหมู่หลักในฟาร์ม</div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="card h-100 p-3" style="border-left: 4px solid var(--warn);">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <div class="text-muted small">สต็อกต่ำกว่าจุดสั่งซื้อ</div>
+              <h3 class="fw-bold mb-0 mt-1" style="color: var(--warn);"><%= stats.low_stock_count %></h3>
+            </div>
+            <div class="fs-1">📉</div>
+          </div>
+          <div class="mt-2 small text-muted">ต่ำกว่าระดับความปลอดภัย (Reorder Point)</div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="card h-100 p-3" style="border-left: 4px solid #f59e0b;">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <div class="text-muted small">ใกล้หมดอายุ (ภายใน 30 วัน)</div>
+              <h3 class="fw-bold mb-0 mt-1 text-warning"><%= stats.near_exp_count %></h3>
+            </div>
+            <div class="fs-1">⚠</div>
+          </div>
+          <div class="mt-2 small text-muted">ต้องเร่งจัดสรรการใช้งานก่อนเสื่อมสภาพ</div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="card h-100 p-3" style="border-left: 4px solid var(--danger);">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <div class="text-muted small">หมดอายุแล้ว / หมดสต็อก</div>
+              <h3 class="fw-bold mb-0 mt-1 text-danger"><%= stats.expired_or_out_count %></h3>
+            </div>
+            <div class="fs-1">✖</div>
+          </div>
+          <div class="mt-2 small text-muted">ห้ามเบิกจ่าย ต้องสั่งเพิ่มหรือทำลายทิ้ง</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- กราฟ Chart.js แสดงสต็อกเทียบจุดสั่งซื้อ -->
+    <div class="card mb-4 shadow-sm">
+      <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <span class="fw-bold fs-6 text-dark">📊 สถิติสต็อกพร้อมใช้เทียบกับจุดสั่งซื้อซ้ำ (Reorder Point)</span>
+        <small class="text-muted">ข้อมูล 15 รายการแรก</small>
+      </div>
+      <div class="card-body">
+        <div style="height: 180px; width: 100%;">
+          <canvas id="stockChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- แท็บกรองหมวดหมู่ (Category Tabs) -->
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+      <ul class="nav category-nav">
+        <li class="nav-item">
+          <a class="nav-link <%= !filters.category ? 'active' : '' %>" href="/app/inventory">
+            ทั้งหมด
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link <%= filters.category === 'feed' ? 'active' : '' %>" href="/app/inventory?category=feed">
+            🌾 อาหารสัตว์ (Feed)
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link <%= filters.category === 'antibiotic' ? 'active' : '' %>" href="/app/inventory?category=antibiotic">
+            💊 ยาปฏิชีวนะ (Antibiotic)
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link <%= filters.category === 'vaccine' ? 'active' : '' %>" href="/app/inventory?category=vaccine">
+            💉 วัคซีน (Vaccine)
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- ฟิลเตอร์ค้นหา + กรองสถานะ + เรียงลำดับ -->
+    <div class="filter-card mb-4">
+      <form method="GET" action="/app/inventory" class="row g-2 align-items-center">
+        <% if (filters.category) { %>
+          <input type="hidden" name="category" value="<%= filters.category %>">
+        <% } %>
+        <div class="col-md-3">
+          <input 
+            type="text" 
+            name="search" 
+            class="form-control" 
+            placeholder="ค้นหาชื่อ หรือ รหัสสินค้า..." 
+            value="<%= filters.search %>"
+          >
+        </div>
+        <div class="col-md-3">
+          <select name="status" class="form-select">
+            <option value="">-- ทุกสถานะสต็อก --</option>
+            <option value="normal" <%= filters.status === 'normal' ? 'selected' : '' %>>● ปกติ</option>
+            <option value="near_exp" <%= filters.status === 'near_exp' ? 'selected' : '' %>>⚠ ใกล้หมดอายุ</option>
+            <option value="low_stock" <%= filters.status === 'low_stock' ? 'selected' : '' %>>📉 สต็อกต่ำ</option>
+            <option value="out_of_stock" <%= filters.status === 'out_of_stock' ? 'selected' : '' %>>✖ หมดสต็อก</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <select name="sort" class="form-select">
+            <option value="id" <%= filters.sort === 'id' ? 'selected' : '' %>>เรียงตามลำดับ ID</option>
+            <option value="item_code" <%= filters.sort === 'item_code' ? 'selected' : '' %>>รหัสสินค้า</option>
+            <option value="name" <%= filters.sort === 'name' ? 'selected' : '' %>>ชื่อสินค้า</option>
+            <option value="stock" <%= filters.sort === 'stock' ? 'selected' : '' %>>ยอดคงเหลือ</option>
+            <option value="exp" <%= filters.sort === 'exp' ? 'selected' : '' %>>วันหมดอายุเร็วสุด</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <select name="order" class="form-select">
+            <option value="asc" <%= filters.order === 'asc' ? 'selected' : '' %>>น้อยไปมาก (ASC)</option>
+            <option value="desc" <%= filters.order === 'desc' ? 'selected' : '' %>>มากไปน้อย (DESC)</option>
+          </select>
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+          <button type="submit" class="btn btn-primary w-100">ค้นหา</button>
+          <a href="/app/inventory" class="btn btn-outline-secondary">รีเซ็ต</a>
+        </div>
+      </form>
+    </div>
+
+    <!-- ตารางแสดงรายการพัสดุและเวชภัณฑ์ (Desktop Table) -->
+    <div class="card shadow-sm desktop-table">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+        <span class="fw-bold fs-6 text-dark">ตารางตรวจสต็อกคงเหลือ (<%= pagination.totalItemsCount %> รายการทั้งหมด)</span>
+        <small class="text-muted">หน้า <%= pagination.currentPage %> จาก <%= pagination.totalPages %></small>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 100px;">รหัส</th>
+                <th style="width: 60px;">รูป</th>
+                <th>ชื่อสินค้า</th>
+                <th>หมวดหมู่</th>
+                <th class="text-end" style="width: 170px;">คงเหลือ (หลัก/ย่อย)</th>
+                <th style="width: 130px;">ระดับคงเหลือ</th>
+                <th style="width: 120px;">หมดอายุเร็วสุด</th>
+                <th>สถานะ</th>
+                <th class="text-center" style="width: 120px;">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if (items.length === 0) { %>
+                <tr>
+                  <td colspan="9" class="text-center py-5 text-muted">
+                    ไม่พบรายการสินค้าที่ตรงกับเงื่อนไขการค้นหา
+                  </td>
+                </tr>
+              <% } %>
+              <% items.forEach(item => { %>
+                <% 
+                  const isItemDisabled = (item.is_active === false || item.is_active === 'false' || item.is_active === 0);
+                %>
+                <tr class="<%= isItemDisabled ? 'table-secondary bg-opacity-50' : '' %>">
+                  <td>
+                    <span class="font-monospace fw-semibold"><%= item.item_code %></span>
+                    <% if (isItemDisabled) { %>
+                      <div><span class="badge bg-danger shadow-xs" style="font-size: 0.75rem;">🔒 ปิดใช้งาน</span></div>
+                    <% } %>
+                  </td>
+                  <td>
+                    <% if (item.image_file_name) { %>
+                      <img src="/uploads/<%= item.image_file_name %>" alt="thumb" class="rounded object-fit-cover" style="width: 44px; height: 44px;">
+                    <% } else { %>
+                      <div class="rounded bg-light d-flex align-items-center justify-content-center text-muted" style="width: 44px; height: 44px; font-size: 1.2rem;">
+                        <%= item.category === 'feed' ? '🌾' : (item.category === 'antibiotic' ? '💊' : '💉') %>
+                      </div>
+                    <% } %>
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center gap-2">
+                      <a href="/app/inventory/<%= item.id %>" class="fw-bold text-decoration-none" style="color: var(--green-900);">
+                        <%= item.name %>
+                      </a>
+                      <% if (isItemDisabled) { %>
+                        <span class="badge bg-danger">🔴 ปิดใช้งานอยู่</span>
+                      <% } %>
+                    </div>
+                    <% if (item.storage_note) { %>
+                      <div class="small text-muted text-truncate" style="max-width: 260px;">
+                        ❄️ <%= item.storage_note %>
+                      </div>
+                    <% } %>
+                  </td>
+                  <td>
+                    <% if (item.category === 'feed') { %>
+                      <span class="badge bg-light text-success border">🌾 อาหารสัตว์</span>
+                    <% } else if (item.category === 'antibiotic') { %>
+                      <span class="badge bg-light text-primary border">💊 ยาปฏิชีวนะ</span>
+                    <% } else { %>
+                      <span class="badge bg-light text-info border">💉 วัคซีน</span>
+                    <% } %>
+                  </td>
+                  <td class="text-end">
+                    <div class="fw-bold fs-6">
+                      <%= parseFloat(item.total_usable_stock).toLocaleString() %> <%= item.base_unit %>
+                    </div>
+                    <% if (item.alt_unit && item.unit_factor) { %>
+                      <div class="small text-muted">
+                        ≈ <%= (parseFloat(item.total_usable_stock) * parseFloat(item.unit_factor)).toLocaleString() %> <%= item.alt_unit %>
+                      </div>
+                    <% } %>
+                  </td>
+                  <td>
+                    <div class="d-flex justify-content-between small text-muted mb-1">
+                      <span>จุดสั่ง: <%= parseFloat(item.reorder_point).toLocaleString() %></span>
+                    </div>
+                    <% 
+                      const reorder = parseFloat(item.reorder_point) || 1;
+                      const stock = parseFloat(item.total_usable_stock) || 0;
+                      const pct = Math.min(100, Math.round((stock / (reorder * 2)) * 100));
+                      let barColor = 'bg-success';
+                      if (stock <= 0) barColor = 'bg-danger';
+                      else if (stock <= reorder) barColor = 'bg-warning';
+                    %>
+                    <div class="progress stock-progress">
+                      <div class="progress-bar <%= barColor %>" role="progressbar" style="width: <%= pct %>%;"></div>
+                    </div>
+                  </td>
+                  <td>
+                    <% if (item.earliest_exp_date) { %>
+                      <span class="small font-monospace">
+                        <%= new Date(item.earliest_exp_date).toLocaleDateString('th-TH', { timeZone: 'UTC' }) %>
+                      </span>
+                    <% } else { %>
+                      <span class="text-muted small">-</span>
+                    <% } %>
+                  </td>
+                  <td>
+                    <% if (isItemDisabled) { %>
+                      <span class="badge bg-danger shadow-xs">🔒 ปิดใช้งาน</span>
+                    <% } else if (item.stock_status === 'normal') { %>
+                      <span class="badge-stock badge-stock-normal">● ปกติ</span>
+                    <% } else if (item.stock_status === 'near_exp') { %>
+                      <span class="badge-stock badge-stock-near-exp">⚠ ใกล้หมดอายุ</span>
+                    <% } else if (item.stock_status === 'low_stock') { %>
+                      <span class="badge-stock badge-stock-low">📉 สต็อกต่ำ</span>
+                    <% } else { %>
+                      <span class="badge-stock badge-stock-danger">✖ หมดสต็อก</span>
+                    <% } %>
+                  </td>
+                  <td class="text-center">
+                    <a href="/app/inventory/<%= item.id %>" class="btn btn-outline-primary btn-sm px-2">
+                      เปิดดู &rarr;
+                    </a>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- การ์ดรายการสำหรับ Mobile Screen (Responsive) -->
+    <div class="mobile-cards">
+      <% if (items.length === 0) { %>
+        <div class="card p-4 text-center text-muted">ไม่พบรายการสินค้า</div>
+      <% } %>
+      <div class="d-flex flex-column gap-3">
+        <% items.forEach(item => { %>
+          <% 
+            const isItemDisabledMob = (item.is_active === false || item.is_active === 'false' || item.is_active === 0);
+          %>
+          <div class="card p-3 shadow-xs <%= isItemDisabledMob ? 'border-danger border-opacity-50' : '' %>">
+            <div class="d-flex align-items-center gap-3 mb-2">
+              <% if (item.image_file_name) { %>
+                <img src="/uploads/<%= item.image_file_name %>" alt="thumb" class="rounded object-fit-cover" style="width: 50px; height: 50px;">
+              <% } else { %>
+                <div class="rounded bg-light d-flex align-items-center justify-content-center text-muted" style="width: 50px; height: 50px; font-size: 1.4rem;">
+                  <%= item.category === 'feed' ? '🌾' : (item.category === 'antibiotic' ? '💊' : '💉') %>
+                </div>
+              <% } %>
+              <div class="flex-grow-1 min-w-0">
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="font-monospace fw-bold small text-muted"><%= item.item_code %></span>
+                  <% if (isItemDisabledMob) { %>
+                    <span class="badge bg-danger py-0">🔒 ปิดใช้งาน</span>
+                  <% } else if (item.stock_status === 'normal') { %>
+                    <span class="badge-stock badge-stock-normal py-0">● ปกติ</span>
+                  <% } else if (item.stock_status === 'near_exp') { %>
+                    <span class="badge-stock badge-stock-near-exp py-0">⚠ ใกล้หมด</span>
+                  <% } else if (item.stock_status === 'low_stock') { %>
+                    <span class="badge-stock badge-stock-low py-0">📉 ต่ำ</span>
+                  <% } else { %>
+                    <span class="badge-stock badge-stock-danger py-0">✖ หมด</span>
+                  <% } %>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <h6 class="fw-bold mb-0 text-truncate"><%= item.name %></h6>
+                  <% if (isItemDisabledMob) { %>
+                    <span class="badge bg-danger py-0" style="font-size: 0.7rem;">🔴 ปิดใช้งานอยู่</span>
+                  <% } %>
+                </div>
+              </div>
+            </div>
+            <div class="row g-2 small border-top pt-2 mt-1">
+              <div class="col-6">
+                <span class="text-muted">คงเหลือ:</span>
+                <strong class="text-success"><%= parseFloat(item.total_usable_stock).toLocaleString() %> <%= item.base_unit %></strong>
+              </div>
+              <div class="col-6">
+                <span class="text-muted">จุดสั่งซื้อ:</span>
+                <strong><%= parseFloat(item.reorder_point).toLocaleString() %></strong>
+              </div>
+              <% if (item.earliest_exp_date) { %>
+                <div class="col-12">
+                  <span class="text-muted">หมดอายุเร็วสุด:</span>
+                  <span class="font-monospace"><%= new Date(item.earliest_exp_date).toLocaleDateString('th-TH', { timeZone: 'UTC' }) %></span>
+                </div>
+              <% } %>
+            </div>
+            <div class="mt-3">
+              <a href="/app/inventory/<%= item.id %>" class="btn btn-outline-primary btn-sm w-100">
+                ดูรายละเอียดและล็อต &rarr;
+              </a>
+            </div>
+          </div>
+        <% }); %>
+      </div>
+    </div>
+
+    <!-- Pagination Controls -->
+    <% if (pagination.totalPages > 1) { %>
+      <div class="d-flex justify-content-between align-items-center mt-3">
+        <span class="small text-muted">แสดงหน้า <%= pagination.currentPage %> จาก <%= pagination.totalPages %></span>
+        <div class="btn-group">
+          <% if (pagination.hasPrev) { %>
+            <a href="/app/inventory?page=<%= pagination.currentPage - 1 %>&category=<%= filters.category %>&status=<%= filters.status %>&search=<%= filters.search %>&sort=<%= filters.sort %>&order=<%= filters.order %>" class="btn btn-outline-secondary btn-sm">
+              &laquo; ก่อนหน้า
+            </a>
+          <% } %>
+          <% if (pagination.hasNext) { %>
+            <a href="/app/inventory?page=<%= pagination.currentPage + 1 %>&category=<%= filters.category %>&status=<%= filters.status %>&search=<%= filters.search %>&sort=<%= filters.sort %>&order=<%= filters.order %>" class="btn btn-outline-secondary btn-sm">
+              ถัดไป &raquo;
+            </a>
+          <% } %>
+        </div>
+      </div>
+    <% } %>
+  </main>
+
+  <!-- Modal สร้าง Item ใหม่ (เฉพาะผู้มีสิทธิ์) -->
+  <% if (can('inventory.create')) { %>
+    <div class="modal fade" id="createItemModal" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title fw-bold">🌿 เพิ่มรายการวัสดุ/เวชภัณฑ์ใหม่</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div id="create-error" class="alert alert-danger d-none"></div>
+            <form id="createItemForm" enctype="multipart/form-data">
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">รหัสสินค้า <span class="text-danger">*</span></label>
+                  <input type="text" name="item_code" class="form-control" placeholder="เช่น FEED-004, MED-005" required>
+                </div>
+                <div class="col-md-8">
+                  <label class="form-label fw-semibold">ชื่อสินค้า/เวชภัณฑ์ <span class="text-danger">*</span></label>
+                  <input type="text" name="name" class="form-control" placeholder="ระบุชื่อภาษาไทยหรืออังกฤษ" required>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">หมวดหมู่ <span class="text-danger">*</span></label>
+                  <select name="category" class="form-select" required>
+                    <option value="feed">🌾 อาหารสัตว์ (feed)</option>
+                    <option value="antibiotic">💊 ยาปฏิชีวนะ (antibiotic)</option>
+                    <option value="vaccine">💉 วัคซีน (vaccine)</option>
+                  </select>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">หน่วยหลัก (Base Unit) <span class="text-danger">*</span></label>
+                  <input type="text" name="base_unit" class="form-control" placeholder="เช่น กระสอบ/ขวด/โดส" required>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">จุดสั่งซื้อซ้ำ (Reorder Point)</label>
+                  <input type="number" step="0.01" name="reorder_point" class="form-control" value="0">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">หน่วยย่อย (Alt Unit)</label>
+                  <input type="text" name="alt_unit" class="form-control" placeholder="เช่น กก./มล. (ถ้ามี)">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">อัตราแปลงหน่วย (Unit Factor)</label>
+                  <input type="number" step="0.01" name="unit_factor" class="form-control" placeholder="1 alt = กี่ base">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">ราคาต่อหน่วย (บาท)</label>
+                  <input type="number" step="0.01" name="unit_cost" class="form-control" placeholder="0.00">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">รูปภาพสินค้า (JPG/PNG ≤ 2MB)</label>
+                  <input type="file" name="image" class="form-control" accept="image/png, image/jpeg">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">ข้อแนะนำการจัดเก็บ (Storage Note)</label>
+                  <textarea name="storage_note" class="form-control" rows="1" placeholder="เช่น เก็บในตู้เย็น 2-8°C หรือ เก็บในที่แห้งพ้นแสงแดด"></textarea>
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="button" class="btn btn-primary" onclick="submitCreateItem()">บันทึกรายการ</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% } %>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // กราฟแท่ง Chart.js
+    document.addEventListener('DOMContentLoaded', () => {
+      const chartDataRaw = <%- JSON.stringify(chartData || []) %>;
+      const ctx = document.getElementById('stockChart').getContext('2d');
+      
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: chartDataRaw.map(d => d.item_code),
+          datasets: [
+            {
+              label: 'คงเหลือพร้อมใช้',
+              data: chartDataRaw.map(d => parseFloat(d.total_usable_stock)),
+              backgroundColor: '#2D6A4F',
+              borderRadius: 4,
+            },
+            {
+              label: 'จุดสั่งซื้อซ้ำ',
+              data: chartDataRaw.map(d => parseFloat(d.reorder_point)),
+              backgroundColor: '#E9A23B',
+              borderRadius: 4,
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'top', labels: { boxWidth: 12 } }
+          },
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+    });
+
+    let createModal;
+    <% if (can('inventory.create')) { %>
+      document.addEventListener('DOMContentLoaded', () => {
+        createModal = new bootstrap.Modal(document.getElementById('createItemModal'));
+      });
+
+      function showCreateModal() {
+        document.getElementById('createItemForm').reset();
+        document.getElementById('create-error').classList.add('d-none');
+        createModal.show();
+      }
+
+      async function submitCreateItem() {
+        const form = document.getElementById('createItemForm');
+        const formData = new FormData(form);
+        const errBox = document.getElementById('create-error');
+
+        try {
+          const res = await fetch('/app/inventory', {
+            method: 'POST',
+            body: formData
+          });
+
+          const result = await res.json();
+          if (!res.ok) {
+            errBox.textContent = result.error || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล';
+            errBox.classList.remove('d-none');
+            return;
+          }
+
+          alert('เพิ่มรายการสินค้าเรียบร้อยแล้ว');
+          createModal.hide();
+          window.location.reload();
+        } catch (err) {
+          errBox.textContent = 'เชื่อมต่อเซิร์ฟเวอร์ล้มเหลว';
+          errBox.classList.remove('d-none');
+        }
+      }
+    <% } %>
+  </script>
+  <script src="/js/theme-toggle.js"></script>
+</body>
+</html>

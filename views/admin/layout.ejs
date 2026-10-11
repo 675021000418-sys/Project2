@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= pageTitle %> - ผู้ดูแลระบบฟาร์ม</title>
+  <!-- Bootstrap 5 CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- ธีมธรรมชาติ (Natural Green Theme) -->
+  <link rel="stylesheet" href="/css/theme.css">
+  <style>
+    /* สไตล์เฉพาะตารางและการ์ดใน Admin */
+    .stat-card {
+      border: 1px solid rgba(45, 106, 79, 0.1);
+      border-radius: 12px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .stat-card:hover {
+      transform: translateY(-3px);
+    }
+    .stat-icon {
+      font-size: 2.2rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- แถบโหมดผู้ดูแลระบบ (Admin Mode Bar) ด้านบนสุด -->
+  <% 
+    const isSuperOrHasPerm = role === 'admin' || (typeof can === 'function' && (can('acl.manage') || can('user.read') || can('role.read') || can('endpoint.manage') || can('permission.read') || can('log.view')));
+  %>
+  <% if (isSuperOrHasPerm) { %>
+    <div class="admin-mode-bar">
+      <span>🛡️ <strong>โหมดผู้ดูแลระบบ (Admin Mode)</strong> - คุณมีสิทธิ์จัดการคอนฟิกและความปลอดภัยตามที่ได้รับมอบหมาย</span>
+      <span class="d-none d-md-inline small text-light opacity-75">Farm Management Security Shield</span>
+    </div>
+  <% } %>
+
+  <!-- ฉากหลังสำหรับเปิด Sidebar ในมือถือ -->
+  <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
+
+  <div class="app-container">
+    <!-- Sidebar สีเขียวเข้ม (--green-900) -->
+    <aside class="app-sidebar" id="appSidebar">
+      <a href="/admin/dashboard" class="sidebar-brand">
+        <span>🌿</span>
+        <span>ระบบบริหารฟาร์ม</span>
+      </a>
+
+      <div class="px-3 pt-3 pb-2 text-white-50 small border-bottom border-secondary border-opacity-25">
+        <span>เมนูจัดการระบบ</span>
+      </div>
+
+      <% 
+        const checkCan = (typeof can === 'function') ? can : (perm => (typeof role !== 'undefined' && role === 'admin'));
+      %>
+      <ul class="sidebar-menu">
+        <li>
+          <a href="/admin/dashboard" class="<%= activeMenu === 'dashboard' ? 'active' : '' %>">
+            <span>📊</span> <span>Dashboard</span>
+          </a>
+        </li>
+        <% if (checkCan('inventory.read')) { %>
+          <li>
+            <a href="/app/inventory" class="<%= activeMenu === 'inventory' ? 'active' : '' %>">
+              <span>📦</span> <span>คลังวัสดุ/เวชภัณฑ์</span>
+            </a>
+          </li>
+        <% } %>
+        <% if (checkCan('request.read')) { %>
+          <li>
+            <a href="/app/requests" class="<%= activeMenu === 'requests' ? 'active' : '' %>">
+              <span>📋</span> <span>รายการคำขอเบิก</span>
+            </a>
+          </li>
+        <% } %>
+        <% if (checkCan('user.read')) { %>
+          <li>
+            <a href="/admin/users" class="<%= activeMenu === 'users' ? 'active' : '' %>">
+              <span>👥</span> <span>จัดการผู้ใช้</span>
+            </a>
+          </li>
+        <% } %>
+        <% if (checkCan('role.read')) { %>
+          <li>
+            <a href="/admin/roles" class="<%= activeMenu === 'roles' ? 'active' : '' %>">
+              <span>🔖</span> <span>บทบาท (Roles)</span>
+            </a>
+          </li>
+        <% } %>
+        <% if (checkCan('permission.read')) { %>
+          <li>
+            <a href="/admin/permissions" class="<%= activeMenu === 'permissions' ? 'active' : '' %>">
+              <span>🔑</span> <span>สิทธิ์ (Permissions)</span>
+            </a>
+          </li>
+        <% } %>
+        <% if (checkCan('acl.manage')) { %>
+          <li>
+            <a href="/admin/acl" class="<%= activeMenu === 'acl' ? 'active' : '' %>">
+              <span>🔐</span> <span>ตารางสิทธิ์ (ACL Matrix)</span>
+            </a>
+          </li>
+        <% } %>
+        <% if (checkCan('endpoint.manage')) { %>
+          <li>
+            <a href="/admin/endpoints" class="<%= activeMenu === 'endpoints' ? 'active' : '' %>">
+              <span>🔗</span> <span>Endpoints</span>
+            </a>
+          </li>
+        <% } %>
+        <% if (checkCan('log.view')) { %>
+          <li>
+            <a href="/admin/logs" class="<%= activeMenu === 'logs' ? 'active' : '' %>">
+              <span>📋</span> <span>Audit Logs</span>
+            </a>
+          </li>
+        <% } %>
+      </ul>
+
+      <div class="sidebar-footer">
+        <a href="/dashboard" class="btn btn-outline-light w-100 mb-2 btn-sm text-start">
+          🏠 กลับหน้าหลัก
+        </a>
+        <form method="POST" action="/logout" class="m-0">
+          <button type="submit" class="btn btn-danger w-100 btn-sm text-start">
+            🚪 ล็อกเอาท์
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- พื้นที่ทำงานหลัก (Main Content) -->
+    <div class="app-main">
+      <!-- Topbar สีขาว -->
+      <header class="app-topbar">
+        <div class="d-flex align-items-center gap-2">
+          <!-- ปุ่ม Hamburger สำหรับ Mobile (สูง 44px) -->
+          <button class="sidebar-toggler" type="button" onclick="toggleSidebar()" aria-label="Toggle Sidebar">
+            ☰
+          </button>
+          <span class="fs-5 fw-bold text-dark d-none d-sm-inline">ผู้ดูแลระบบ</span>
+        </div>
+
+        <div class="d-flex align-items-center gap-3">
+          <div class="text-end">
+            <span class="fw-semibold text-dark d-block" style="font-size: 0.95rem;"><%= fullName %></span>
+            <!-- Badge Role บน Topbar -->
+            <% if (role === 'admin') { %>
+              <span class="badge-role badge-role-admin">🛡️ Admin</span>
+            <% } else if (role === 'owner') { %>
+              <span class="badge-role badge-role-owner">👑 เจ้าของฟาร์ม</span>
+            <% } else if (role === 'head') { %>
+              <span class="badge-role badge-role-head">👨‍🌾 หัวหน้าโรงเรือน</span>
+            <% } else { %>
+              <span class="badge-role badge-role-worker">🌱 คนงาน</span>
+            <% } %>
+          </div>
+
+          <!-- ปุ่มสลับโหมดมืด/สว่าง -->
+          <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="สลับโหมดมืด/สว่าง">
+            🌙
+          </button>
+
+          <form method="POST" action="/logout" class="d-none d-sm-inline m-0">
+            <button type="submit" class="btn btn-outline-secondary btn-sm">
+              ออกจากระบบ
+            </button>
+          </form>
+        </div>
+      </header>
+
+      <!-- ส่วนแสดงผลตามแต่ละหน้า -->
+      <main class="app-content">
+        <%- body %>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // เปิด-ปิด Sidebar บนหน้าจอมือถือ
+    function toggleSidebar() {
+      const sidebar = document.getElementById('appSidebar');
+      const backdrop = document.getElementById('sidebarBackdrop');
+      sidebar.classList.toggle('show');
+      backdrop.classList.toggle('show');
+    }
+  </script>
+  <!-- โมดอลยืนยันและกล่องข้อความแจ้งเตือนธีมฟาร์ม -->
+  <script src="/js/farm-modal.js"></script>
+  <%- scripts %>
+  <!-- สคริปต์สลับโหมดมืด/สว่าง -->
+  <script src="/js/theme-toggle.js"></script>
+</body>
+</html>

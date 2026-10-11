@@ -1,0 +1,288 @@
+<%- include('layout', {
+  pageTitle: 'ผู้ใช้',
+  fullName: fullName,
+  role: role,
+  activeMenu: 'users',
+  body: `
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h2 class="mb-1">👥 จัดการผู้ใช้</h2>
+        <p class="text-muted mb-0">เพิ่ม แก้ไข กำหนดสิทธิ์บทบาท และจัดการสถานะผู้ใช้ในระบบ</p>
+      </div>
+      <button class="btn btn-primary" onclick="showCreateUserModal()">+ เพิ่มผู้ใช้ใหม่</button>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover table-striped align-middle mb-0" id="users-table">
+            <thead class="table-light">
+              <tr>
+                <th>ID</th>
+                <th>ชื่อผู้ใช้</th>
+                <th>ชื่อ-นามสกุล</th>
+                <th>อีเมล</th>
+                <th>บทบาท (Role)</th>
+                <th>สถานะ</th>
+                <th>วันที่สร้าง</th>
+                <th class="text-center">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="8" class="text-center text-muted py-4">กำลังโหลดข้อมูลผู้ใช้...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal เพิ่มผู้ใช้ -->
+    <div class="modal fade" id="createUserModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">➕ เพิ่มผู้ใช้ใหม่</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <form id="createUserForm">
+              <div class="mb-3">
+                <label class="form-label">ชื่อผู้ใช้ (Username) <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="username" required placeholder="เช่น somchai1">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">ชื่อ-นามสกุล <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="full_name" required placeholder="เช่น สมชาย ใจดี">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">อีเมล <span class="text-danger">*</span></label>
+                <input type="email" class="form-control" name="email" required placeholder="เช่น somchai@farm.local">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">รหัสผ่าน <span class="text-danger">*</span></label>
+                <input type="password" class="form-control" name="password" required placeholder="อย่างน้อย 6 ตัวอักษร">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">บทบาท (Role) <span class="text-danger">*</span></label>
+                <select class="form-select" name="roleId" id="createRoleSelect" required></select>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="button" class="btn btn-primary" onclick="createUser()">บันทึก</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal แก้ไขผู้ใช้ -->
+    <div class="modal fade" id="editUserModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">✏️ แก้ไขข้อมูลผู้ใช้</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <form id="editUserForm">
+              <input type="hidden" name="id" id="editUserId">
+              <div class="mb-3">
+                <label class="form-label">ชื่อผู้ใช้ (ไม่สามารถแก้ไขได้)</label>
+                <input type="text" class="form-control bg-light" id="editUsername" readonly>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">ชื่อ-นามสกุล <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="full_name" id="editFullName" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">อีเมล <span class="text-danger">*</span></label>
+                <input type="email" class="form-control" name="email" id="editEmail" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">บทบาท (Role) <span class="text-danger">*</span></label>
+                <select class="form-select" name="roleId" id="editRoleSelect" required></select>
+              </div>
+              <div class="mb-3 form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="is_active" id="editIsActive" value="true">
+                <label class="form-check-label" for="editIsActive">เปิดใช้งานบัญชี (Active)</label>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="button" class="btn btn-primary" onclick="updateUser()">บันทึกการแก้ไข</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `,
+  scripts: `
+    <script>
+      let cachedRoles = [];
+      let cachedUsers = [];
+
+      async function loadRoles() {
+        try {
+          const res = await fetch('/api/admin/roles');
+          if (res.ok) {
+            cachedRoles = await res.json();
+          }
+        } catch (e) {
+          console.error('Error loading roles:', e);
+        }
+      }
+
+      async function loadUsers() {
+        try {
+          if (cachedRoles.length === 0) await loadRoles();
+          const res = await fetch('/api/admin/users');
+          if (!res.ok) {
+            const err = await res.json();
+            alert('โหลดผู้ใช้ไม่สำเร็จ: ' + (err.error || ''));
+            return;
+          }
+          cachedUsers = await res.json();
+          const tbody = document.querySelector('#users-table tbody');
+          if (cachedUsers.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">ไม่พบข้อมูลผู้ใช้</td></tr>';
+            return;
+          }
+
+          tbody.innerHTML = cachedUsers.map(u => {
+            const createdAt = u.created_at ? new Date(u.created_at).toLocaleDateString('th-TH') : '-';
+            const roleBadge = u.role_name === 'admin' ? 'bg-danger' : (u.role_name === 'owner' ? 'bg-primary' : (u.role_name === 'head' ? 'bg-success' : 'bg-secondary'));
+            return '<tr>' +
+              '<td>' + u.id + '</td>' +
+              '<td><strong>' + u.username + '</strong></td>' +
+              '<td>' + u.full_name + '</td>' +
+              '<td>' + u.email + '</td>' +
+              '<td><span class="badge ' + roleBadge + '">' + (u.role_name || 'ไม่มีบทบาท') + '</span></td>' +
+              '<td>' + (u.is_active ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-danger">Inactive</span>') + '</td>' +
+              '<td><small class="text-muted">' + createdAt + '</small></td>' +
+              '<td class="text-center">' +
+                '<button class="btn btn-sm btn-outline-primary me-1" onclick="openEditUserModal(' + u.id + ')">แก้ไข</button>' +
+                '<button class="btn btn-sm btn-outline-danger" onclick="deleteUser(' + u.id + ')">ลบ</button>' +
+              '</td>' +
+            '</tr>';
+          }).join('');
+        } catch (e) {
+          console.error('Error loading users:', e);
+        }
+      }
+
+      function showCreateUserModal() {
+        const select = document.getElementById('createRoleSelect');
+        select.innerHTML = '<option value="">-- เลือกบทบาท --</option>' + cachedRoles.map(r => '<option value="' + r.id + '">' + r.name + ' (' + (r.description || '') + ')</option>').join('');
+        document.getElementById('createUserForm').reset();
+        new bootstrap.Modal(document.getElementById('createUserModal')).show();
+      }
+
+      async function createUser() {
+        const form = document.getElementById('createUserForm');
+        const data = new FormData(form);
+        const payload = Object.fromEntries(data);
+        if (!payload.username || !payload.password || !payload.email || !payload.full_name || !payload.roleId) {
+          alert('กรุณากรอกข้อมูลให้ครบถ้วนทุกช่อง');
+          return;
+        }
+
+        try {
+          const res = await fetch('/api/admin/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const result = await res.json();
+          if (res.ok) {
+            const modalEl = document.getElementById('createUserModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+            form.reset();
+            loadUsers();
+          } else {
+            alert('เกิดข้อผิดพลาด: ' + (result.error || 'ไม่สามารถสร้างผู้ใช้ได้'));
+          }
+        } catch (e) {
+          alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+        }
+      }
+
+      function openEditUserModal(userId) {
+        const user = cachedUsers.find(u => u.id === userId);
+        if (!user) return;
+
+        document.getElementById('editUserId').value = user.id;
+        document.getElementById('editUsername').value = user.username;
+        document.getElementById('editFullName').value = user.full_name;
+        document.getElementById('editEmail').value = user.email;
+        document.getElementById('editIsActive').checked = user.is_active;
+
+        const select = document.getElementById('editRoleSelect');
+        select.innerHTML = '<option value="">-- เลือกบทบาท --</option>' + cachedRoles.map(r => {
+          const selected = r.id === user.role_id ? 'selected' : '';
+          return '<option value="' + r.id + '" ' + selected + '>' + r.name + ' (' + (r.description || '') + ')</option>';
+        }).join('');
+
+        new bootstrap.Modal(document.getElementById('editUserModal')).show();
+      }
+
+      async function updateUser() {
+        const userId = document.getElementById('editUserId').value;
+        const fullName = document.getElementById('editFullName').value;
+        const email = document.getElementById('editEmail').value;
+        const roleId = document.getElementById('editRoleSelect').value;
+        const isActive = document.getElementById('editIsActive').checked;
+
+        try {
+          const res = await fetch('/api/admin/users/' + userId, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              full_name: fullName,
+              email: email,
+              roleId: roleId ? parseInt(roleId) : null,
+              is_active: isActive
+            })
+          });
+          const result = await res.json();
+          if (res.ok) {
+            const modalEl = document.getElementById('editUserModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+            loadUsers();
+          } else {
+            alert('เกิดข้อผิดพลาด: ' + (result.error || 'ไม่สามารถแก้ไขผู้ใช้ได้'));
+          }
+        } catch (e) {
+          alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+        }
+      }
+
+      async function deleteUser(id) {
+        const confirmed = await farmConfirm({
+          title: 'ยืนยันการลบผู้ใช้',
+          message: 'คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้นี้ออกจากระบบ?\\nการกระทำนี้ไม่สามารถย้อนกลับได้',
+          type: 'danger',
+          icon: '👤',
+          confirmText: 'ลบผู้ใช้'
+        });
+        if (!confirmed) return;
+
+        try {
+          const res = await fetch('/api/admin/users/' + id, { method: 'DELETE' });
+          if (res.ok) {
+            loadUsers();
+          } else {
+            const err = await res.json();
+            farmAlert(err.error || 'เกิดข้อผิดพลาดในการลบผู้ใช้', 'ลบไม่สำเร็จ', 'danger');
+          }
+        } catch (e) {
+          farmAlert('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'ผิดพลาด', 'danger');
+        }
+      }
+
+      loadUsers();
+    </script>
+  `
+}) %>

@@ -1,0 +1,108 @@
+<%- include('layout', {
+  pageTitle: 'ACL',
+  fullName: fullName,
+  role: role,
+  activeMenu: 'acl',
+  body: `
+    <h2>ACL Matrix</h2>
+    <p class="text-muted">จัดการสิทธิ์ Role × Permission</p>
+
+    <style>
+      .permission-title {
+        color: var(--green-900, #1B4332);
+        font-size: 0.95rem;
+      }
+      .permission-key {
+        background-color: rgba(45, 106, 79, 0.08);
+        color: var(--green-700, #2D6A4F);
+        border-color: rgba(45, 106, 79, 0.2) !important;
+        font-family: monospace;
+        font-size: 0.8rem;
+        font-weight: 500;
+      }
+      [data-bs-theme="dark"] .permission-title {
+        color: #E2E8F0 !important;
+      }
+      [data-bs-theme="dark"] .permission-key {
+        background-color: rgba(82, 183, 136, 0.15);
+        color: #74C69D !important;
+        border-color: rgba(82, 183, 136, 0.3) !important;
+      }
+    </style>
+
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">ACL Matrix (Role × Permission)</h5>
+        <span id="acl-status" class="badge bg-success bg-opacity-75 d-none py-2 px-3" style="font-size: 0.85rem; border-radius: 8px;">
+          ✓ บันทึกการเปลี่ยนแปลงแล้ว
+        </span>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive" id="acl-container"></div>
+      </div>
+    </div>
+  `,
+  scripts: `
+    <script>
+      async function loadACL() {
+        const res = await fetch('/api/admin/acl');
+        const data = await res.json();
+        
+        let html = '<table class="table table-bordered table-hover align-middle mb-0"><thead class="table-light"><tr><th style="min-width: 220px;">Permission \\\\ Role</th>';
+        data.roles.forEach(r => {
+          html += '<th class="text-center" style="min-width: 120px;"><strong>' + r.name + '</strong></th>';
+        });
+        html += '</tr></thead><tbody>';
+        
+        data.permissions.forEach(p => {
+          html += '<tr><td class="py-2">' +
+            '<div class="fw-semibold permission-title">' + (p.description || p.key) + '</div>' +
+            '<div class="mt-1"><span class="badge border permission-key px-2 py-1">' + p.key + '</span></div>' +
+          '</td>';
+          data.roles.forEach(r => {
+            const key = r.id + '-' + p.id;
+            const checked = data.acl[key] ? 'checked' : '';
+            const disabled = r.name === 'admin' ? 'disabled' : '';
+            html += '<td class="text-center"><input class="form-check-input" type="checkbox" ' + checked + ' ' + disabled + ' onchange="updateACL(' + r.id + ',' + p.id + ',this.checked)"></td>';
+          });
+          html += '</tr>';
+        });
+        
+        html += '</tbody></table>';
+        document.getElementById('acl-container').innerHTML = html;
+      }
+
+      let statusTimeout;
+      async function updateACL(roleId, permissionId, hasPermission) {
+        try {
+          const res = await fetch('/api/admin/acl', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ roleId, permissionId, hasPermission })
+          });
+          if (!res.ok) {
+            const err = await res.json();
+            alert(err.error || 'บันทึกสิทธิ์ไม่สำเร็จ');
+            loadACL();
+            return;
+          }
+
+          // แสดงแจ้งเตือนว่าบันทึกสำเร็จทันที
+          const statusEl = document.getElementById('acl-status');
+          if (statusEl) {
+            statusEl.classList.remove('d-none');
+            clearTimeout(statusTimeout);
+            statusTimeout = setTimeout(() => {
+              statusEl.classList.add('d-none');
+            }, 2000);
+          }
+        } catch (e) {
+          alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+          loadACL();
+        }
+      }
+
+      loadACL();
+    </script>
+  `
+}) %>

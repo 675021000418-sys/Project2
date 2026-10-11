@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= typeof status !== 'undefined' ? status : 'ข้อผิดพลาด' %> - ระบบบริหารฟาร์ม</title>
+  <!-- Bootstrap 5 CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- ธีมธรรมชาติ (Natural Green Theme) -->
+  <link rel="stylesheet" href="/css/theme.css">
+  <style>
+    body {
+      background-color: var(--cream);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .error-card {
+      max-width: 520px;
+      width: 100%;
+      background: #ffffff;
+      border-radius: 16px;
+      border: 1px solid rgba(45, 106, 79, 0.12);
+      box-shadow: 0 8px 24px rgba(27, 67, 50, 0.08);
+      padding: 2.5rem 2rem;
+      text-align: center;
+    }
+    .error-code {
+      font-size: 4rem;
+      font-weight: 800;
+      line-height: 1;
+      color: var(--green-700);
+      margin-bottom: 0.5rem;
+    }
+    .error-icon {
+      font-size: 3rem;
+      margin-bottom: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="error-card">
+    <div class="error-icon">
+      <% if (typeof status !== 'undefined' && status === 403) { %>
+        🔒
+      <% } else if (typeof status !== 'undefined' && status === 404) { %>
+        🔍
+      <% } else { %>
+        ⚠️
+      <% } %>
+    </div>
+
+    <div class="error-code">
+      <%= typeof status !== 'undefined' ? status : 'แจ้งเตือน' %>
+    </div>
+
+    <h3 class="fw-bold mb-2 text-dark">
+      <% if (typeof status !== 'undefined' && status === 403) { %>
+        ไม่มีสิทธิ์เข้าถึง (Forbidden)
+      <% } else if (typeof status !== 'undefined' && status === 404) { %>
+        ไม่พบหน้าที่ต้องการ (Not Found)
+      <% } else { %>
+        เกิดข้อผิดพลาดในการประมวลผล
+      <% } %>
+    </h3>
+
+    <p class="text-muted mb-4">
+      <%= error || 'ขออภัย เกิดข้อผิดพลาดบางอย่างในระบบ กรุณาลองใหม่อีกครั้ง' %>
+    </p>
+
+    <div class="d-flex flex-column flex-sm-row justify-content-center gap-2">
+      <a href="/dashboard" class="btn btn-primary">
+        🏠 กลับหน้าหลัก
+      </a>
+      <a href="/login" class="btn btn-secondary">
+        🔑 ไปที่หน้าล็อกอิน
+      </a>
+    </div>
+
+    <div class="mt-4 pt-3 border-top text-muted small">
+      ระบบบริหารฟาร์มและคลังเวชภัณฑ์ (Farm Management System)
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

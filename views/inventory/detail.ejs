@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= pageTitle %> - รายละเอียดสินค้า</title>
+  <!-- Bootstrap 5 CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- ธีมธรรมชาติ (Natural Green Theme) -->
+  <link rel="stylesheet" href="/css/theme.css">
+  <style>
+    .highlight-next-deduct {
+      background-color: #d1e7dd !important;
+      border-left: 4px solid var(--green-700) !important;
+    }
+  </style>
+</head>
+<body>
+  <!-- แถบผู้ดูแลระบบ (หากเป็น Admin หรือมีสิทธิ์จัดการระบบ) -->
+  <% 
+    const hasAdminPerm = role === 'admin' || (typeof can === 'function' && (can('acl.manage') || can('user.read') || can('role.read') || can('endpoint.manage') || can('permission.read') || can('log.view')));
+  %>
+  <% if (hasAdminPerm) { %>
+    <div class="admin-mode-bar">
+      <span>🛡️ <strong>โหมดผู้ดูแลระบบ (Admin Mode)</strong> - คุณสามารถจัดการคลังและสิทธิ์ได้ทุกฟังก์ชัน</span>
+      <a href="/admin/dashboard" class="text-white text-decoration-underline small">ไปยังหน้า Admin Panel &rarr;</a>
+    </div>
+  <% } %>
+
+  <!-- Topbar -->
+  <header class="app-topbar sticky-top">
+    <div class="container d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center gap-3">
+        <a class="navbar-brand d-flex align-items-center gap-2 text-decoration-none" href="/app/inventory">
+          <span class="fs-4">🌿</span>
+          <span class="fw-bold" style="color: var(--green-900); font-size: 1.25rem;">ระบบบริหารฟาร์ม</span>
+        </a>
+        <div class="vr d-none d-md-block" style="height: 24px;"></div>
+        <nav class="d-none d-md-flex align-items-center gap-2">
+          <a href="/dashboard" class="text-decoration-none text-muted px-2 py-1">หน้าหลัก</a>
+          <a href="/app/inventory" class="text-decoration-none fw-bold px-2 py-1" style="color: var(--green-700);">&larr; คลังวัสดุและเวชภัณฑ์</a>
+          <a href="/app/requests" class="text-decoration-none text-muted px-2 py-1">📋 รายการคำขอเบิก</a>
+          <% if (hasAdminPerm) { %>
+            <a href="/admin/dashboard" class="text-decoration-none text-muted px-2 py-1">Admin Panel</a>
+          <% } %>
+        </nav>
+      </div>
+
+      <div class="d-flex align-items-center gap-3">
+        <div class="text-end">
+          <span class="fw-semibold text-dark d-none d-sm-inline me-1"><%= fullName %></span>
+          <% if (role === 'admin') { %>
+            <span class="badge-role badge-role-admin">🛡️ Admin</span>
+          <% } else if (role === 'owner') { %>
+            <span class="badge-role badge-role-owner">👑 เจ้าของฟาร์ม</span>
+          <% } else if (role === 'head') { %>
+            <span class="badge-role badge-role-head">👨‍🌾 หัวหน้าโรงเรือน</span>
+          <% } else { %>
+            <span class="badge-role badge-role-worker">🌱 คนงาน</span>
+          <% } %>
+        </div>
+
+        <!-- ปุ่มสลับโหมดมืด/สว่าง -->
+        <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="สลับโหมดมืด/สว่าง">
+          🌙
+        </button>
+
+        <form method="POST" action="/logout" class="m-0">
+          <button type="submit" class="btn btn-secondary btn-sm">🚪 ล็อกเอาท์</button>
+        </form>
+      </div>
+    </div>
+  </header>
+
+  <main class="container my-4">
+    <!-- Breadcrumb & Action Bar -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+      <div>
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="/app/inventory" class="text-decoration-none">คลังวัสดุและเวชภัณฑ์</a></li>
+            <li class="breadcrumb-item active" aria-current="page"><%= item.item_code %></li>
+          </ol>
+        </nav>
+        <div class="d-flex align-items-center gap-2">
+          <h2 class="mb-0 fw-bold text-dark"><%= item.name %></h2>
+          <% if (!item.is_active) { %>
+            <span class="badge bg-danger fs-6">🔴 ปิดใช้งานอยู่</span>
+          <% } %>
+        </div>
+      </div>
+
+      <!-- ปุ่ม Action แสดงเฉพาะผู้มีสิทธิ์ตามกติกา RBAC/ACL -->
+      <div class="d-flex flex-wrap gap-2">
+        <% if (can('request.create')) { %>
+          <button class="btn btn-success" onclick="showRequestModal()">
+            📝 ยื่นคำขอเบิก (Request)
+          </button>
+        <% } %>
+        <% if (can('inventory.receive')) { %>
+          <button class="btn btn-primary" onclick="showReceiveModal()">
+            📥 รับเข้าสต็อก (Receive)
+          </button>
+        <% } %>
+        <% if (can('inventory.issue')) { %>
+          <button class="btn btn-secondary" onclick="showIssueModal()">
+            📤 จ่ายออก (Issue)
+          </button>
+        <% } %>
+        <% if (can('inventory.update')) { %>
+          <button class="btn btn-outline-success" onclick="showEditModal()">
+            ✏️ แก้ไขข้อมูล
+          </button>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- แผงข้อมูลหลักของสินค้า (ข้อมูล + รูป + วิธีเก็บรักษา) -->
+    <div class="row g-4 mb-4">
+      <div class="col-md-8">
+        <div class="card h-100 p-4">
+          <div class="row g-3 align-items-center">
+            <!-- ส่วนแสดงรูปภาพสินค้า -->
+            <div class="col-sm-4 text-center">
+              <% if (item.image_file_name) { %>
+                <img src="/uploads/<%= item.image_file_name %>" alt="<%= item.name %>" class="img-fluid rounded shadow-sm border object-fit-cover" style="max-height: 180px; width: 100%;">
+              <% } else { %>
+                <div class="rounded bg-light border d-flex flex-column align-items-center justify-content-center text-muted p-4" style="height: 180px;">
+                  <span style="font-size: 3rem;"><%= item.category === 'feed' ? '🌾' : (item.category === 'antibiotic' ? '💊' : '💉') %></span>
+                  <small class="mt-2 text-muted">ไม่มีรูปภาพสินค้า</small>
+                </div>
+              <% } %>
+            </div>
+
+            <div class="col-sm-8">
+              <div class="row g-3">
+                <div class="col-6">
+                  <span class="text-muted small d-block">รหัสสินค้า</span>
+                  <span class="fs-5 fw-bold font-monospace text-dark"><%= item.item_code %></span>
+                </div>
+                <div class="col-6">
+                  <span class="text-muted small d-block">หมวดหมู่</span>
+                  <% if (item.category === 'feed') { %>
+                    <span class="badge bg-light text-success border">🌾 อาหารสัตว์ (FIFO)</span>
+                  <% } else if (item.category === 'antibiotic') { %>
+                    <span class="badge bg-light text-primary border">💊 ยาปฏิชีวนะ (FEFO)</span>
+                  <% } else { %>
+                    <span class="badge bg-light text-info border">💉 วัคซีน (FEFO)</span>
+                  <% } %>
+                </div>
+                <div class="col-6">
+                  <span class="text-muted small d-block">หน่วยนับหลัก</span>
+                  <span class="fw-semibold text-dark"><%= item.base_unit %></span>
+                  <% if (item.alt_unit && item.unit_factor) { %>
+                    <div class="small text-muted">(1 <%= item.alt_unit %> = <%= item.unit_factor %> <%= item.base_unit %>)</div>
+                  <% } %>
+                </div>
+                <div class="col-6">
+                  <span class="text-muted small d-block">จุดสั่งซื้อซ้ำ (Reorder Point)</span>
+                  <span class="fw-semibold text-dark"><%= parseFloat(item.reorder_point).toLocaleString() %> <%= item.base_unit %></span>
+                </div>
+                <div class="col-12">
+                  <span class="text-muted small d-block">ข้อแนะนำการจัดเก็บ (Storage Note)</span>
+                  <div class="p-2 rounded bg-light border mt-1 small">
+                    ❄️ <%= item.storage_note || 'เก็บในที่แห้ง อุณหภูมิห้องปกติ' %>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card h-100 p-4 text-center d-flex flex-column justify-content-center" style="background-color: var(--green-100); border: 1px solid rgba(45, 106, 79, 0.2);">
+          <div class="text-muted small">ยอดสต็อกพร้อมใช้ปัจจุบัน (Usable Stock)</div>
+          <h1 class="display-5 fw-bold mb-1" style="color: var(--green-900);">
+            <%= parseFloat(item.total_usable_stock).toLocaleString() %>
+          </h1>
+          <div class="fw-semibold text-dark mb-2"><%= item.base_unit %></div>
+          <div>
+            <% if (item.stock_status === 'normal') { %>
+              <span class="badge-stock badge-stock-normal">● สถานะปกติ</span>
+            <% } else if (item.stock_status === 'near_exp') { %>
+              <span class="badge-stock badge-stock-near-exp">⚠ มีล็อตใกล้หมดอายุ</span>
+            <% } else if (item.stock_status === 'low_stock') { %>
+              <span class="badge-stock badge-stock-low">📉 ต่ำกว่าจุดสั่งซื้อ</span>
+            <% } else { %>
+              <span class="badge-stock badge-stock-danger">✖ หมดสต็อก</span>
+            <% } %>
+          </div>
+          <% if (parseFloat(item.expired_stock) > 0) { %>
+            <div class="alert alert-danger py-1 px-2 small mb-0 mt-3">
+              ✖ มีล็อตหมดอายุค้างอยู่ <%= parseFloat(item.expired_stock) %> <%= item.base_unit %> (ห้ามจ่าย)
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+
+    <!-- ตารางล็อตสินค้า (Inventory Batches - เรียงตาม FEFO พร้อมไฮไลต์ล็อตที่จะถูกตัดก่อน) -->
+    <div class="card mb-4 shadow-sm">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+        <div>
+          <h5 class="mb-0 fw-bold">📦 รายการล็อตสินค้า (Batches)</h5>
+          <small class="text-muted">ลำดับตัดจ่าย: <%= item.category === 'feed' ? 'FIFO (รับเข้าเก่าสุดก่อน)' : 'FEFO (หมดอายุเร็วสุดก่อน)' %></small>
+        </div>
+        <div>
+          <span class="badge bg-success bg-opacity-25 text-success border border-success">
+            แถวสีเขียวอ่อน = ล็อตที่จะถูกตัดก่อน
+          </span>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>หมายเลขล็อต (Lot No.)</th>
+                <th>วันที่รับเข้า</th>
+                <th>วันผลิต (MFG)</th>
+                <th>วันหมดอายุ (EXP)</th>
+                <th class="text-end">จำนวนรับเข้า</th>
+                <th class="text-end">คงเหลือในล็อต</th>
+                <th>ผู้จำหน่าย</th>
+                <th>สถานะล็อต</th>
+                <% if (can('inventory.adjust') || can('inventory.dispose')) { %>
+                  <th class="text-center" style="width: 170px;">การดำเนินการ</th>
+                <% } %>
+              </tr>
+            </thead>
+            <tbody>
+              <% if (batches.length === 0) { %>
+                <tr>
+                  <td colspan="<%= (can('inventory.adjust') || can('inventory.dispose')) ? 9 : 8 %>" class="text-center py-4 text-muted">ยังไม่เคยมีล็อตสินค้าในระบบ</td>
+                </tr>
+              <% } %>
+              <% batches.forEach(b => { %>
+                <tr class="<%= b.id === nextLotIdToDeduct ? 'highlight-next-deduct' : (b.qty_remaining <= 0 || b.lot_status === 'empty' ? 'table-light text-muted' : (b.lot_status === 'expired' ? 'table-danger' : (b.lot_status === 'near_exp' ? 'table-warning' : ''))) %>">
+                  <td>
+                    <span class="font-monospace fw-bold"><%= b.lot_no %></span>
+                    <% if (b.id === nextLotIdToDeduct) { %>
+                      <span class="badge bg-success ms-1 small">🎯 ล็อตที่จะตัดก่อน</span>
+                    <% } %>
+                    <% if (b.note) { %>
+                      <div class="small text-muted"><%= b.note %></div>
+                    <% } %>
+                  </td>
+                  <td><%= new Date(b.received_date).toLocaleDateString('th-TH', { timeZone: 'UTC' }) %></td>
+                  <td><%= b.mfg_date ? new Date(b.mfg_date).toLocaleDateString('th-TH', { timeZone: 'UTC' }) : '-' %></td>
+                  <td>
+                    <% if (b.exp_date) { %>
+                      <span class="font-monospace fw-semibold <%= b.qty_remaining <= 0 ? 'text-muted' : (b.lot_status === 'expired' ? 'text-danger fw-bold' : (b.lot_status === 'near_exp' ? 'text-dark' : '')) %>">
+                        <%= new Date(b.exp_date).toLocaleDateString('th-TH', { timeZone: 'UTC' }) %>
+                      </span>
+                    <% } else { %>
+                      <span class="text-muted">-</span>
+                    <% } %>
+                  </td>
+                  <td class="text-end"><%= parseFloat(b.qty_received).toLocaleString() %></td>
+                  <td class="text-end fw-bold fs-6 <%= b.qty_remaining > 0 ? 'text-success' : 'text-muted' %>">
+                    <%= parseFloat(b.qty_remaining).toLocaleString() %>
+                  </td>
+                  <td><%= b.supplier || '-' %></td>
+                  <td>
+                    <% if (b.qty_remaining <= 0 || b.lot_status === 'empty') { %>
+                      <span class="badge bg-secondary">หมดล็อต (0)</span>
+                    <% } else if (b.lot_status === 'expired') { %>
+                      <span class="badge bg-danger">หมดอายุแล้ว</span>
+                    <% } else if (b.lot_status === 'near_exp') { %>
+                      <span class="badge bg-warning text-dark">ใกล้หมดอายุ</span>
+                    <% } else { %>
+                      <span class="badge bg-success">ปกติ</span>
+                    <% } %>
+                  </td>
+                  <% if (can('inventory.adjust') || can('inventory.dispose')) { %>
+                    <td class="text-center">
+                      <div class="d-flex justify-content-center gap-1">
+                        <% if (can('inventory.dispose') && b.lot_status === 'expired' && b.qty_remaining > 0) { %>
+                          <button class="btn btn-danger btn-sm px-2" title="ทำลายล็อตหมดอายุ" onclick="showDisposeModal(<%= b.id %>, '<%= b.lot_no %>', <%= b.qty_remaining %>, '<%= b.exp_date ? new Date(b.exp_date).toLocaleDateString('th-TH', { timeZone: 'UTC' }) : '' %>')">
+                            🔥 ทำลาย
+                          </button>
+                        <% } %>
+                        <% if (can('inventory.adjust')) { %>
+                          <button class="btn btn-outline-secondary btn-sm px-2" title="ปรับยอดตรวจนับ" onclick="showAdjustModal(<%= b.id %>, '<%= b.lot_no %>', <%= b.qty_remaining %>)">
+                            ⚖️ ตรวจนับ
+                          </button>
+                        <% } %>
+                      </div>
+                    </td>
+                  <% } %>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ตารางประวัติความเคลื่อนไหว (Stock Transactions + Pagination) -->
+    <div class="card shadow-sm">
+      <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold">📋 ประวัติความเคลื่อนไหวสต็อก (Stock Transactions)</h5>
+        <small class="text-muted">ทั้งหมด <%= txPagination.totalTx %> รายการ</small>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-striped table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>วัน-เวลา</th>
+                <th>ประเภท</th>
+                <th>ล็อตสินค้า</th>
+                <th class="text-end">จำนวน</th>
+                <th class="text-end">คงเหลือในล็อต</th>
+                <th>ผู้ทำรายการ</th>
+                <th>หมายเหตุ</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if (transactions.length === 0) { %>
+                <tr>
+                  <td colspan="7" class="text-center py-4 text-muted">ยังไม่มีประวัติการทำรายการ</td>
+                </tr>
+              <% } %>
+              <% transactions.forEach(tx => { %>
+                <tr>
+                  <td class="small font-monospace"><%= new Date(tx.created_at).toLocaleString('th-TH') %></td>
+                  <td>
+                    <% if (tx.type === 'receive') { %>
+                      <span class="badge bg-success">📥 รับเข้า</span>
+                    <% } else if (tx.type === 'issue') { %>
+                      <span class="badge bg-primary">📤 จ่ายออก</span>
+                    <% } else if (tx.type === 'dispose') { %>
+                      <span class="badge bg-danger">🔥 ทำลายแล้ว</span>
+                    <% } else { %>
+                      <span class="badge bg-warning text-dark">⚖️ ปรับยอด</span>
+                    <% } %>
+                  </td>
+                  <td class="font-monospace"><%= tx.lot_no %></td>
+                  <td class="text-end fw-bold <%= (tx.type === 'issue' || tx.type === 'dispose') ? 'text-danger' : 'text-success' %>">
+                    <%= (tx.type === 'issue' || tx.type === 'dispose') ? '-' : '+' %><%= parseFloat(tx.qty).toLocaleString() %> <%= item.base_unit %>
+                  </td>
+                  <td class="text-end font-monospace"><%= parseFloat(tx.balance_after).toLocaleString() %></td>
+                  <td><%= tx.performed_by_name %></td>
+                  <td class="small text-muted"><%= tx.note || '-' %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <% if (txPagination.totalPages > 1) { %>
+        <div class="card-footer bg-white d-flex justify-content-between align-items-center py-2">
+          <small class="text-muted">หน้า <%= txPagination.currentPage %> จาก <%= txPagination.totalPages %></small>
+          <div class="btn-group">
+            <% if (txPagination.hasPrev) { %>
+              <a href="/app/inventory/<%= item.id %>?tx_page=<%= txPagination.currentPage - 1 %>" class="btn btn-outline-secondary btn-sm">
+                &laquo; ก่อนหน้า
+              </a>
+            <% } %>
+            <% if (txPagination.hasNext) { %>
+              <a href="/app/inventory/<%= item.id %>?tx_page=<%= txPagination.currentPage + 1 %>" class="btn btn-outline-secondary btn-sm">
+                ถัดไป &raquo;
+              </a>
+            <% } %>
+          </div>
+        </div>
+      <% } %>
+    </div>
+  </main>
+
+  <!-- Modal รับเข้าสต็อก (Receive) -->
+  <% if (can('inventory.receive')) { %>
+    <div class="modal fade" id="receiveModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title fw-bold">📥 รับสินค้าเข้าสต็อก (<%= item.item_code %>)</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div id="receive-error" class="alert alert-danger d-none"></div>
+            <form id="receiveForm">
+              <div class="mb-3">
+                <label class="form-label fw-semibold">
+                  หมายเลขล็อต (Lot No.) 
+                  <% if (item.category !== 'feed') { %><span class="text-danger">* (จำเป็น)</span><% } %>
+                </label>
+                <input type="text" name="lot_no" class="form-control" placeholder="เช่น LOT-2026-001" required>
+                <small class="text-muted d-block mt-1">
+                  💡 หากระบุหมายเลขล็อตเดิม ระบบจะเพิ่มยอดเข้าล็อตเดิมและอัปเดตวันหมดอายุให้ แต่ถ้าเป็นรอบการผลิตใหม่แนะนำให้ตั้งชื่อล็อตใหม่ เช่น <code><%= item.item_code %>-L02</code>
+                </small>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-semibold">จำนวนที่รับเข้า (<%= item.base_unit %>) <span class="text-danger">*</span></label>
+                <input type="number" step="0.01" name="qty" class="form-control" required min="0.01">
+              </div>
+              <div class="row g-2 mb-3">
+                <div class="col-6">
+                  <label class="form-label fw-semibold">วันผลิต (MFG Date)</label>
+                  <input type="date" name="mfg_date" class="form-control">
+                </div>
+                <div class="col-6">
+                  <label class="form-label fw-semibold">
+                    วันหมดอายุ (EXP Date)
+                    <% if (item.category !== 'feed') { %><span class="text-danger">* (จำเป็น)</span><% } %>
+                  </label>
+                  <input type="date" name="exp_date" class="form-control" <%= item.category !== 'feed' ? 'required' : '' %>>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-semibold">ผู้จำหน่าย (Supplier)</label>
+                <input type="text" name="supplier" class="form-control" placeholder="ชื่อบริษัท/ร้านค้า">
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-semibold">หมายเหตุ</label>
+                <textarea name="note" class="form-control" rows="2" placeholder="รายละเอียดเพิ่มเติม"></textarea>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="button" class="btn btn-primary" onclick="submitReceive()">บันทึกรับเข้า</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% } %>
+
+  <!-- Modal จ่ายออกสต็อก (Issue) -->
+  <% if (can('inventory.issue')) { %>
+    <div class="modal fade" id="issueModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title fw-bold">📤 จ่ายสินค้าออกจากคลัง</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="alert alert-info py-2 small">
+              💡 ระบบตัดสต็อกอัตโนมัติแบบ 
+              <strong><%= item.category === 'feed' ? 'FIFO (ล็อตเก่าเข้าก่อน)' : 'FEFO (ล็อตหมดอายุก่อน)' %></strong>
+              และข้ามล็อตหมดอายุแล้วโดยอัตโนมัติ
+            </div>
+            <div id="issue-error" class="alert alert-danger d-none"></div>
+            <form id="issueForm">
+              <div class="mb-3">
+                <label class="form-label fw-semibold">จำนวนที่ต้องการเบิกจ่าย (<%= item.base_unit %>) <span class="text-danger">*</span></label>
+                <input type="number" step="0.01" name="qty" class="form-control" required min="0.01" max="<%= item.total_usable_stock %>">
+                <small class="text-muted">สต็อกพร้อมใช้ปัจจุบัน: <%= parseFloat(item.total_usable_stock).toLocaleString() %> <%= item.base_unit %></small>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-semibold">เหตุผล/หมายเหตุการเบิกจ่าย</label>
+                <textarea name="note" class="form-control" rows="2" placeholder="เช่น ใช้รักษาไก่ไข่ชุดที่ 2"></textarea>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="button" class="btn btn-primary" onclick="submitIssue()">ยืนยันการจ่ายออก</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% } %>
+
+  <!-- Modal ปรับยอดตรวจนับ (Adjust - บังคับใส่เหตุผล) -->
+  <% if (can('inventory.adjust')) { %>
+    <div class="modal fade" id="adjustModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title fw-bold">⚖️ ปรับยอดตรวจนับในล็อต</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div id="adjust-error" class="alert alert-danger d-none"></div>
+            <form id="adjustForm">
+              <input type="hidden" id="adjust-batch-id" name="batch_id">
+              <div class="mb-3">
+                <label class="form-label fw-semibold">ล็อตสินค้า</label>
+                <input type="text" id="adjust-lot-no" class="form-control bg-light" readonly>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-semibold">ยอดคงเหลือเดิมในระบบ (<%= item.base_unit %>)</label>
+                <input type="text" id="adjust-current-qty" class="form-control bg-light" readonly>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-semibold">ยอดนับจริง (Physical Count) (<%= item.base_unit %>) <span class="text-danger">*</span></label>
+                <input type="number" step="0.01" id="adjust-new-qty" name="new_qty" class="form-control" required min="0" oninput="calculateDiff()">
+              </div>
+              <div class="mb-3">
+                <div class="p-2 rounded bg-light border small">
+                  ผลต่างที่เกิดขึ้น: <strong id="adjust-diff-display" class="font-monospace">0</strong> <%= item.base_unit %>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-semibold">เหตุผลการปรับปรุงยอด <span class="text-danger">* (จำเป็น)</span></label>
+                <textarea name="reason" id="adjust-reason" class="form-control" rows="2" placeholder="ระบุเหตุผล เช่น สินค้าชำรุด, นับคลังประจำสัปดาห์" required></textarea>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="button" class="btn btn-primary" onclick="submitAdjust()">บันทึกยอดตรวจนับ</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% } %>
+
+  <!-- Modal บันทึกทำลายสต็อกหมดอายุ (Dispose) -->
+  <% if (can('inventory.dispose')) { %>
+    <div class="modal fade" id="disposeModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content border-danger">
+          <div class="modal-header bg-danger text-white">
+            <h5 class="modal-title fw-bold">🔥 บันทึกทำลายสินค้าหมดอายุ</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="alert alert-warning py-2 small">
+              ⚠️ การทำลายสินค้าจะตัดยอดออกจากคลังอย่างถาวร และบันทึกประวัติสถานะว่า <strong>"ทำลายแล้ว"</strong> ตามมาตรฐานความปลอดภัยทางชีวภาพ (Biosecurity)
+            </div>
+            <div id="dispose-error" class="alert alert-danger d-none"></div>
+            <form id="disposeForm">
+              <input type="hidden" id="dispose-batch-id" name="batch_id">
+              
+              <div class="row g-2 mb-3">
+                <div class="col-6">
+                  <label class="form-label small text-muted">ล็อตสินค้า</label>
+                  <input type="text" id="dispose-lot-no" class="form-control bg-light font-monospace fw-bold" readonly>
+                </div>
+                <div class="col-6">
+                  <label class="form-label small text-muted">วันที่หมดอายุ</label>
+                  <input type="text" id="dispose-exp-date" class="form-control bg-light text-danger fw-semibold" readonly>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label fw-semibold">จำนวนที่ต้องทำลายทิ้ง (<%= item.base_unit %>) <span class="text-danger">*</span></label>
+                <input type="number" step="0.01" id="dispose-qty" name="qty" class="form-control" required min="0.01">
+                <small class="text-muted">ยอดค้างที่หมดอายุในล็อต: <span id="dispose-max-qty-text" class="fw-bold text-dark">0</span> <%= item.base_unit %></small>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label fw-semibold">วิธีการทำลาย (Disposal Method) <span class="text-danger">*</span></label>
+                <select name="disposal_method" id="dispose-method" class="form-select" required>
+                  <option value="ฝังกลบตามสุขอนามัย">🚜 ฝังกลบตามสุขอนามัย (Deep Burial / Sanitary landfill)</option>
+                  <option value="เผาทำลายความร้อนสูง">🔥 เผาทำลายความร้อนสูง (Incineration)</option>
+                  <option value="ส่งหน่วยงานกำจัดขยะอันตราย/ติดเชื้อ">☣️ ส่งหน่วยงานกำจัดขยะอันตราย/ติดเชื้อภายนอก</option>
+                  <option value="เททิ้งบ่อบำบัดน้ำเสียฆ่าเชื้อ">🧪 เททิ้งระบบบ่อบำบัดฆ่าเชื้อ (Chemical deactivation)</option>
+                  <option value="อื่นๆ">📋 อื่นๆ (ระบุในหมายเหตุ)</option>
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label fw-semibold">เหตุผลการทำลาย <span class="text-danger">*</span></label>
+                <input type="text" name="reason" id="dispose-reason" class="form-control" value="สินค้าหมดอายุ เสื่อมสภาพตามมาตรฐานฟาร์ม" required>
+              </div>
+
+              <div class="row g-2 mb-3">
+                <div class="col-6">
+                  <label class="form-label fw-semibold">พยาน/ผู้ร่วมตรวจสอบ</label>
+                  <input type="text" name="witness_name" id="dispose-witness" class="form-control" placeholder="ชื่อสัตวแพทย์ / ผจก.ฟาร์ม">
+                </div>
+                <div class="col-6">
+                  <label class="form-label fw-semibold">สถานะหลังทำลาย</label>
+                  <input type="text" class="form-control bg-light text-danger fw-bold" value="ทำลายแล้ว (Completed)" readonly>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label fw-semibold">หมายเหตุเพิ่มเติม</label>
+                <textarea name="note" id="dispose-note" class="form-control" rows="2" placeholder="รายละเอียดสถานที่ทำลาย รูปภาพอ้างอิง หรือเลขที่เอกสาร"></textarea>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="button" class="btn btn-danger" onclick="submitDisposeStock()">🔥 ยืนยันบันทึกทำลายแล้ว</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% } %>
+
+  <!-- Modal แก้ไขข้อมูลสินค้า (Edit Item) -->
+  <% if (can('inventory.update')) { %>
+    <div class="modal fade" id="editModal" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title fw-bold">✏️ แก้ไขข้อมูลวัสดุ/เวชภัณฑ์</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div id="edit-error" class="alert alert-danger d-none"></div>
+            <form id="editItemForm" enctype="multipart/form-data">
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">รหัสสินค้า <span class="text-danger">*</span></label>
+                  <input type="text" name="item_code" class="form-control" value="<%= item.item_code %>" required>
+                </div>
+                <div class="col-md-8">
+                  <label class="form-label fw-semibold">ชื่อสินค้า <span class="text-danger">*</span></label>
+                  <input type="text" name="name" class="form-control" value="<%= item.name %>" required>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">หมวดหมู่ <span class="text-danger">*</span></label>
+                  <select name="category" class="form-select" required>
+                    <option value="feed" <%= item.category === 'feed' ? 'selected' : '' %>>🌾 อาหารสัตว์</option>
+                    <option value="antibiotic" <%= item.category === 'antibiotic' ? 'selected' : '' %>>💊 ยาปฏิชีวนะ</option>
+                    <option value="vaccine" <%= item.category === 'vaccine' ? 'selected' : '' %>>💉 วัคซีน</option>
+                  </select>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">หน่วยหลัก <span class="text-danger">*</span></label>
+                  <input type="text" name="base_unit" class="form-control" value="<%= item.base_unit %>" required>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">จุดสั่งซื้อซ้ำ</label>
+                  <input type="number" step="0.01" name="reorder_point" class="form-control" value="<%= item.reorder_point %>">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">หน่วยย่อย (Alt Unit)</label>
+                  <input type="text" name="alt_unit" class="form-control" value="<%= item.alt_unit || '' %>">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">อัตราแปลงหน่วย (Unit Factor)</label>
+                  <input type="number" step="0.01" name="unit_factor" class="form-control" value="<%= item.unit_factor || '' %>">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">ราคาต่อหน่วย</label>
+                  <input type="number" step="0.01" name="unit_cost" class="form-control" value="<%= item.unit_cost || '' %>">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">เปลี่ยนรูปภาพ (JPG/PNG ≤ 2MB)</label>
+                  <input type="file" name="image" class="form-control" accept="image/png, image/jpeg">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">ข้อแนะนำการจัดเก็บ</label>
+                  <textarea name="storage_note" class="form-control" rows="1"><%= item.storage_note || '' %></textarea>
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="button" class="btn btn-primary" onclick="submitEditItem()">บันทึกการแก้ไข</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% } %>
+
+  <!-- Modal สำหรับยื่นคำขอเบิกสินค้า (Requisition Modal) -->
+  <% if (can('request.create')) { %>
+    <div class="modal fade" id="requestModal" tabindex="-1" aria-labelledby="requestModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title fw-bold" id="requestModalLabel">📝 ยื่นคำขอเบิกพัสดุ / ยา / เวชภัณฑ์</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div id="request-error" class="alert alert-danger d-none" role="alert"></div>
+            <form id="requestForm">
+              <div class="mb-3">
+                <label class="form-label text-muted small">รายการที่ขอเบิก</label>
+                <input type="text" class="form-control bg-light" value="<%= item.name %> (<%= item.item_code %>)" readonly>
+              </div>
+
+              <div class="mb-3">
+                <label for="request_house_id" class="form-label fw-semibold">โรงเรือนที่ต้องการนำไปใช้ <span class="text-danger">*</span></label>
+                <select class="form-select" id="request_house_id" name="house_id" required>
+                  <option value="" disabled selected>-- เลือกโรงเรือนเป้าหมาย --</option>
+                  <% if (typeof houses !== 'undefined' && houses.length > 0) { %>
+                    <% houses.forEach(h => { %>
+                      <option value="<%= h.id %>"><%= h.name %> (<%= h.animal_type || 'ทั่วไป' %>)</option>
+                    <% }) %>
+                  <% } else { %>
+                    <option value="1">โรงเรือน A (ไก่)</option>
+                    <option value="2">โรงเรือน B (หมู)</option>
+                    <option value="3">โรงเรือน C (เป็ด)</option>
+                  <% } %>
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <label for="request_qty" class="form-label fw-semibold">จำนวนที่ต้องการเบิก (<%= item.base_unit %>) <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <input type="number" class="form-control" id="request_qty" name="qty" min="1" step="1" placeholder="ระบุจำนวน" required>
+                  <span class="input-group-text"><%= item.base_unit %></span>
+                </div>
+                <div class="form-text">
+                  สต็อกพร้อมใช้ปัจจุบัน: <strong><%= parseFloat(item.total_usable_stock || 0).toLocaleString() %></strong> <%= item.base_unit %>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label for="request_reason" class="form-label fw-semibold">วัตถุประสงค์ / เหตุผลในการขอเบิก</label>
+                <textarea class="form-control" id="request_reason" name="reason" rows="2" placeholder="เช่น ให้อาหารไก่รุ่น 2 ประจำวัน, รักษาโรคตามอาการ"></textarea>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="button" class="btn btn-success" id="btnSubmitRequest" onclick="submitRequestRequisition()">
+              🚀 ส่งคำขอเบิก
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% } %>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/farm-modal.js"></script>
+  <script>
+    const itemId = <%= item.id %>;
+    let receiveModal, issueModal, adjustModal, disposeModal, editModal, requestModal;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      <% if (can('request.create')) { %>
+        const reqEl = document.getElementById('requestModal');
+        if (reqEl) requestModal = new bootstrap.Modal(reqEl);
+      <% } %>
+      <% if (can('inventory.receive')) { %>
+        receiveModal = new bootstrap.Modal(document.getElementById('receiveModal'));
+      <% } %>
+      <% if (can('inventory.issue')) { %>
+        issueModal = new bootstrap.Modal(document.getElementById('issueModal'));
+      <% } %>
+      <% if (can('inventory.adjust')) { %>
+        adjustModal = new bootstrap.Modal(document.getElementById('adjustModal'));
+      <% } %>
+      <% if (can('inventory.dispose')) { %>
+        disposeModal = new bootstrap.Modal(document.getElementById('disposeModal'));
+      <% } %>
+      <% if (can('inventory.update')) { %>
+        editModal = new bootstrap.Modal(document.getElementById('editModal'));
+      <% } %>
+    });
+
+    <% if (can('request.create')) { %>
+      function showRequestModal() {
+        const form = document.getElementById('requestForm');
+        if (form) form.reset();
+        const errBox = document.getElementById('request-error');
+        if (errBox) errBox.classList.add('d-none');
+        if (requestModal) requestModal.show();
+      }
+
+      async function submitRequestRequisition() {
+        const form = document.getElementById('requestForm');
+        const data = Object.fromEntries(new FormData(form).entries());
+        const errBox = document.getElementById('request-error');
+        const btn = document.getElementById('btnSubmitRequest');
+
+        if (!data.house_id) {
+          errBox.textContent = 'กรุณาเลือกโรงเรือนที่ต้องการนำไปใช้';
+          errBox.classList.remove('d-none');
+          return;
+        }
+
+        if (!data.qty || parseInt(data.qty) <= 0) {
+          errBox.textContent = 'กรุณาระบุจำนวนที่ต้องการเบิกให้ถูกต้อง';
+          errBox.classList.remove('d-none');
+          return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '⏳ กำลังส่งข้อมูล...';
+
+        try {
+          const res = await fetch(`/app/inventory/${itemId}/request`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+          });
+
+          const json = await res.json();
+          if (res.ok) {
+            if (requestModal) requestModal.hide();
+            await farmAlert(json.message || 'ยื่นคำขอเบิกเรียบร้อยแล้ว', 'สำเร็จ', 'success');
+            window.location.reload();
+          } else {
+            errBox.textContent = json.error || 'ยื่นคำขอเบิกล้มเหลว';
+            errBox.classList.remove('d-none');
+          }
+        } catch (e) {
+          errBox.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์';
+          errBox.classList.remove('d-none');
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = '🚀 ส่งคำขอเบิก';
+        }
+      }
+    <% } %>
+
+    <% if (can('inventory.receive')) { %>
+      function showReceiveModal() {
+        document.getElementById('receiveForm').reset();
+        document.getElementById('receive-error').classList.add('d-none');
+        receiveModal.show();
+      }
+
+      async function submitReceive() {
+        const form = document.getElementById('receiveForm');
+        const data = Object.fromEntries(new FormData(form).entries());
+        const errBox = document.getElementById('receive-error');
+
+        try {
+          const res = await fetch(`/app/inventory/${itemId}/receive`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+          const result = await res.json();
+          if (!res.ok) {
+            errBox.textContent = result.error || 'เกิดข้อผิดพลาด';
+            errBox.classList.remove('d-none');
+            return;
+          }
+          alert(result.message);
+          receiveModal.hide();
+          window.location.reload();
+        } catch (err) {
+          errBox.textContent = 'เชื่อมต่อเซิร์ฟเวอร์ล้มเหลว';
+          errBox.classList.remove('d-none');
+        }
+      }
+    <% } %>
+
+    <% if (can('inventory.issue')) { %>
+      function showIssueModal() {
+        document.getElementById('issueForm').reset();
+        document.getElementById('issue-error').classList.add('d-none');
+        issueModal.show();
+      }
+
+      async function submitIssue() {
+        const form = document.getElementById('issueForm');
+        const data = Object.fromEntries(new FormData(form).entries());
+        const errBox = document.getElementById('issue-error');
+
+        try {
+          const res = await fetch(`/app/inventory/${itemId}/issue`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+          const result = await res.json();
+          if (!res.ok) {
+            errBox.textContent = result.error || 'เกิดข้อผิดพลาด';
+            errBox.classList.remove('d-none');
+            return;
+          }
+
+          let summaryMsg = result.message + '\n\nรายละเอียดการตัดจากล็อต:\n';
+          result.data.deductions.forEach(d => {
+            summaryMsg += `• ล็อต: ${d.lotNo} ตัดออก: ${d.deductedQty} (คงเหลือ: ${d.balanceAfter})\n`;
+          });
+          alert(summaryMsg);
+          issueModal.hide();
+          window.location.reload();
+        } catch (err) {
+          errBox.textContent = 'เชื่อมต่อเซิร์ฟเวอร์ล้มเหลว';
+          errBox.classList.remove('d-none');
+        }
+      }
+    <% } %>
+
+    <% if (can('inventory.adjust')) { %>
+      let adjustBaseQty = 0;
+      function showAdjustModal(batchId, lotNo, currentQty) {
+        document.getElementById('adjustForm').reset();
+        document.getElementById('adjust-error').classList.add('d-none');
+        document.getElementById('adjust-batch-id').value = batchId;
+        document.getElementById('adjust-lot-no').value = lotNo;
+        document.getElementById('adjust-current-qty').value = currentQty;
+        document.getElementById('adjust-new-qty').value = currentQty;
+        adjustBaseQty = parseFloat(currentQty);
+        calculateDiff();
+        adjustModal.show();
+      }
+
+      function calculateDiff() {
+        const newQty = parseFloat(document.getElementById('adjust-new-qty').value) || 0;
+        const diff = newQty - adjustBaseQty;
+        const display = document.getElementById('adjust-diff-display');
+        display.textContent = (diff > 0 ? '+' : '') + diff.toFixed(2);
+        display.className = 'font-monospace ' + (diff > 0 ? 'text-success' : (diff < 0 ? 'text-danger' : 'text-muted'));
+      }
+
+      async function submitAdjust() {
+        const form = document.getElementById('adjustForm');
+        const data = Object.fromEntries(new FormData(form).entries());
+        const errBox = document.getElementById('adjust-error');
+
+        if (!data.reason || !data.reason.trim()) {
+          errBox.textContent = 'กรุณาระบุเหตุผลการปรับปรุงยอด';
+          errBox.classList.remove('d-none');
+          return;
+        }
+
+        try {
+          const res = await fetch(`/app/inventory/${itemId}/adjust`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+          const result = await res.json();
+          if (!res.ok) {
+            errBox.textContent = result.error || 'เกิดข้อผิดพลาด';
+            errBox.classList.remove('d-none');
+            return;
+          }
+          alert(result.message);
+          adjustModal.hide();
+          window.location.reload();
+        } catch (err) {
+          errBox.textContent = 'เชื่อมต่อเซิร์ฟเวอร์ล้มเหลว';
+          errBox.classList.remove('d-none');
+        }
+      }
+    <% } %>
+
+    <% if (can('inventory.dispose')) { %>
+      function showDisposeModal(batchId, lotNo, qtyRemaining, expDate) {
+        document.getElementById('disposeForm').reset();
+        document.getElementById('dispose-error').classList.add('d-none');
+        document.getElementById('dispose-batch-id').value = batchId;
+        document.getElementById('dispose-lot-no').value = lotNo;
+        document.getElementById('dispose-exp-date').value = expDate || '-';
+        document.getElementById('dispose-qty').value = qtyRemaining;
+        document.getElementById('dispose-qty').max = qtyRemaining;
+        document.getElementById('dispose-max-qty-text').textContent = parseFloat(qtyRemaining).toLocaleString();
+        disposeModal.show();
+      }
+
+      async function submitDisposeStock() {
+        const form = document.getElementById('disposeForm');
+        const data = Object.fromEntries(new FormData(form).entries());
+        const errBox = document.getElementById('dispose-error');
+
+        if (!data.qty || parseFloat(data.qty) <= 0) {
+          errBox.textContent = 'กรุณาระบุจำนวนที่ต้องการทำลายให้ถูกต้อง';
+          errBox.classList.remove('d-none');
+          return;
+        }
+
+        if (!data.reason || !data.reason.trim()) {
+          errBox.textContent = 'กรุณาระบุเหตุผลการทำลาย';
+          errBox.classList.remove('d-none');
+          return;
+        }
+
+        if (!confirm(`ยืนยันการทำลายล็อต ${data.lot_no || ''} จำนวน ${data.qty} <%= item.base_unit %>?\nสถานะจะถูกบันทึกเป็น "ทำลายแล้ว" อย่างถาวร`)) {
+          return;
+        }
+
+        try {
+          const res = await fetch(`/app/inventory/${itemId}/dispose`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+          const result = await res.json();
+          if (!res.ok) {
+            errBox.textContent = result.error || 'เกิดข้อผิดพลาด';
+            errBox.classList.remove('d-none');
+            return;
+          }
+          alert(`✅ ${result.message}\nสถานะ: ทำลายแล้ว (Completed)`);
+          disposeModal.hide();
+          window.location.reload();
+        } catch (err) {
+          errBox.textContent = 'เชื่อมต่อเซิร์ฟเวอร์ล้มเหลว';
+          errBox.classList.remove('d-none');
+        }
+      }
+    <% } %>
+
+    <% if (can('inventory.update')) { %>
+      function showEditModal() {
+        document.getElementById('edit-error').classList.add('d-none');
+        editModal.show();
+      }
+
+      async function submitEditItem() {
+        const form = document.getElementById('editItemForm');
+        const formData = new FormData(form);
+        const errBox = document.getElementById('edit-error');
+
+        try {
+          const res = await fetch(`/app/inventory/${itemId}`, {
+            method: 'PUT',
+            body: formData
+          });
+          const result = await res.json();
+          if (!res.ok) {
+            errBox.textContent = result.error || 'เกิดข้อผิดพลาด';
+            errBox.classList.remove('d-none');
+            return;
+          }
+          alert(result.message);
+          editModal.hide();
+          window.location.reload();
+        } catch (err) {
+          errBox.textContent = 'เชื่อมต่อเซิร์ฟเวอร์ล้มเหลว';
+          errBox.classList.remove('d-none');
+        }
+      }
+    <% } %>
+
+    <% if (can('inventory.update') || can('inventory.delete')) { %>
+      async function toggleActiveStatus(id, enable) {
+        const actionText = enable ? 'เปิดใช้งาน' : 'ลบ/ปิดการใช้งาน';
+        if (!confirm(`คุณต้องการ${actionText}รายการสินค้านี้ใช่หรือไม่?`)) return;
+        try {
+          const res = await fetch(`/app/inventory/${id}/toggle-status`, { method: 'POST' });
+          const result = await res.json();
+          if (!res.ok) {
+            alert(result.error || 'เกิดข้อผิดพลาด');
+            return;
+          }
+          alert(result.message);
+          window.location.reload();
+        } catch (err) {
+          alert('เชื่อมต่อเซิร์ฟเวอร์ล้มเหลว');
+        }
+      }
+    <% } %>
+
+    <% if (can('inventory.delete')) { %>
+      async function deleteItem(id) {
+        const confirmed = await farmConfirm({
+          title: 'ยืนยันการลบ/ระงับสินค้า',
+          message: 'คุณแน่ใจหรือไม่ว่าต้องการลบหรือระงับรายการสินค้านี้ออกจากระบบ?',
+          type: 'danger',
+          icon: '🗑️',
+          confirmText: 'ลบรายการ'
+        });
+        if (!confirmed) return;
+
+        try {
+          const res = await fetch(`/app/inventory/${id}`, { method: 'DELETE' });
+          const result = await res.json();
+          if (!res.ok) {
+            farmAlert(result.error || 'เกิดข้อผิดพลาด', 'ลบไม่สำเร็จ', 'danger');
+            return;
+          }
+          await farmAlert(result.message, 'สำเร็จ', 'success');
+          window.location.reload();
+        } catch (err) {
+          farmAlert('เชื่อมต่อเซิร์ฟเวอร์ล้มเหลว', 'ผิดพลาด', 'danger');
+        }
+      }
+    <% } %>
+  </script>
+  <script src="/js/theme-toggle.js"></script>
+</body>
+</html>

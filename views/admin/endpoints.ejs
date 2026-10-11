@@ -1,0 +1,147 @@
+<%- include('layout', {
+  pageTitle: 'Endpoints',
+  fullName: fullName,
+  role: role,
+  activeMenu: 'endpoints',
+  body: `
+    <h2>Endpoint Permissions</h2>
+    <p class="text-muted">ผูก Permission กับ Endpoint</p>
+
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Endpoint Permissions</h5>
+        <button class="btn btn-primary btn-sm" onclick="showCreateEndpointPermissionModal()">+ ผูก Permission</button>
+      </div>
+      <div class="card-body">
+        <table class="table" id="endpoints-table">
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Path Pattern</th>
+              <th>Permission</th>
+              <th>จัดการ</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Modal ผูก Permission -->
+    <div class="modal fade" id="createEndpointPermissionModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">ผูก Permission กับ Endpoint</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <form id="createEndpointPermissionForm">
+              <div class="mb-3">
+                <label class="form-label">Method</label>
+                <select class="form-control" name="method" required>
+                  <option value="GET">GET</option>
+                  <option value="POST">POST</option>
+                  <option value="PUT">PUT</option>
+                  <option value="DELETE">DELETE</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Path Pattern (Regex)</label>
+                <input type="text" class="form-control" name="pathPattern" placeholder="เช่น ^/api/reports/usage$" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Permission</label>
+                <select class="form-control" name="permissionId" id="permissionSelect" required></select>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="button" class="btn btn-primary" onclick="createEndpointPermission()">บันทึก</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `,
+  scripts: `
+    <script>
+      async function loadEndpointPermissions() {
+        const res = await fetch('/api/admin/endpoint-permissions');
+        const data = await res.json();
+        const tbody = document.querySelector('#endpoints-table tbody');
+        tbody.innerHTML = data.map(ep => \`
+          <tr>
+            <td><span class="badge bg-\${getMethodColor(ep.method)}">\${ep.method}</span></td>
+            <td><code>\${ep.path_pattern}</code></td>
+            <td><small>\${ep.permission_key}</small></td>
+            <td>
+              <button class="btn btn-sm btn-danger" onclick="deleteEndpointPermission(\${ep.id})">ลบ</button>
+            </td>
+          </tr>
+        \`).join('');
+      }
+
+      function getMethodColor(method) {
+        const colors = { GET: 'success', POST: 'primary', PUT: 'warning', DELETE: 'danger' };
+        return colors[method] || 'secondary';
+      }
+
+      async function loadPermissionsForSelect() {
+        const res = await fetch('/api/admin/permissions');
+        const data = await res.json();
+        const select = document.getElementById('permissionSelect');
+        select.innerHTML = data.map(p => '<option value="' + p.id + '">' + p.key + ' - ' + p.description + '</option>').join('');
+      }
+
+      async function createEndpointPermission() {
+        const form = document.getElementById('createEndpointPermissionForm');
+        const data = new FormData(form);
+        const res = await fetch('/api/admin/endpoint-permissions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            method: data.get('method'),
+            pathPattern: data.get('pathPattern'),
+            permissionId: parseInt(data.get('permissionId'))
+          })
+        });
+        if (res.ok) {
+          const modalEl = document.getElementById('createEndpointPermissionModal');
+          const modal = bootstrap.Modal.getInstance(modalEl);
+          if (modal) modal.hide();
+          form.reset();
+          loadEndpointPermissions();
+        } else {
+          alert((await res.json()).error);
+        }
+      }
+
+      async function deleteEndpointPermission(id) {
+        const confirmed = await farmConfirm({
+          title: 'ยืนยันการลบ Endpoint Permission',
+          message: 'คุณแน่ใจหรือไม่ว่าต้องการลบการผูกสิทธิ์ Endpoint รายการนี้?',
+          type: 'danger',
+          icon: '🗑️',
+          confirmText: 'ลบข้อมูล'
+        });
+        if (!confirmed) return;
+
+        const res = await fetch('/api/admin/endpoint-permissions/' + id, { method: 'DELETE' });
+        if (res.ok) {
+          loadEndpointPermissions();
+        } else {
+          const err = await res.json();
+          farmAlert(err.error || 'เกิดข้อผิดพลาดในการลบรายการ', 'ลบไม่สำเร็จ', 'danger');
+        }
+      }
+
+      function showCreateEndpointPermissionModal() {
+        loadPermissionsForSelect();
+        new bootstrap.Modal(document.getElementById('createEndpointPermissionModal')).show();
+      }
+
+      loadEndpointPermissions();
+    </script>
+  `
+}) %>

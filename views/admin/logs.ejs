@@ -1,0 +1,97 @@
+<%- include('layout', {
+  pageTitle: 'Audit Logs',
+  fullName: fullName,
+  role: role,
+  activeMenu: 'logs',
+  body: `
+    <h2>Audit Logs</h2>
+    <p class="text-muted">บันทึกการกระทำในระบบ</p>
+
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">ตัวกรอง</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-3">
+            <label class="form-label">ประเภทเหตุการณ์</label>
+            <select class="form-select" id="filterEventType">
+              <option value="">ทั้งหมด</option>
+              <option value="login">Login</option>
+              <option value="logout">Logout</option>
+              <option value="role.create">สร้าง Role</option>
+              <option value="permission.create">สร้าง Permission</option>
+              <option value="acl.manage">จัดการ ACL</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">ผลลัพธ์</label>
+            <select class="form-select" id="filterResult">
+              <option value="">ทั้งหมด</option>
+              <option value="success">สำเร็จ</option>
+              <option value="fail">ล้มเหลว</option>
+              <option value="denied">ถูกปฏิเสธ</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">&nbsp;</label>
+            <button class="btn btn-primary w-100" onclick="loadLogs()">กรอง</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <table class="table" id="logs-table">
+          <thead>
+            <tr>
+              <th>เวลา</th>
+              <th>ผู้ใช้</th>
+              <th>เหตุการณ์</th>
+              <th>ทรัพยากร</th>
+              <th>ผลลัพธ์</th>
+              <th>IP</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  `,
+  scripts: `
+    <script>
+      async function loadLogs() {
+        const eventType = document.getElementById('filterEventType').value;
+        const result = document.getElementById('filterResult').value;
+        
+        let url = '/api/admin/logs?';
+        if (eventType) url += 'eventType=' + eventType + '&';
+        if (result) url += 'result=' + result + '&';
+        
+        const res = await fetch(url);
+        const data = await res.json();
+        const tbody = document.querySelector('#logs-table tbody');
+        tbody.innerHTML = data.map(log => \`
+          <tr>
+            <td>\${new Date(log.created_at).toLocaleString('th-TH')}</td>
+            <td>\${log.username || log.username_attempted || '-'}</td>
+            <td>\${log.event_type}</td>
+            <td>\${log.resource || '-'}</td>
+            <td>
+              <span class="badge bg-\${getResultColor(log.result)}">\${log.result}</span>
+            </td>
+            <td>\${log.ip || '-'}</td>
+          </tr>
+        \`).join('');
+      }
+
+      function getResultColor(result) {
+        const colors = { success: 'success', fail: 'danger', denied: 'warning' };
+        return colors[result] || 'secondary';
+      }
+
+      loadLogs();
+    </script>
+  `
+}) %>

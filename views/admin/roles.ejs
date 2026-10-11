@@ -1,0 +1,125 @@
+<%- include('layout', {
+  pageTitle: 'Roles',
+  fullName: fullName,
+  role: role,
+  activeMenu: 'roles',
+  body: `
+    <h2>จัดการ Roles</h2>
+    <p class="text-muted">เพิ่ม แก้ไข ลบ บทบาทในระบบ</p>
+
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">รายการ Roles</h5>
+        <button class="btn btn-primary btn-sm" onclick="showCreateRoleModal()">+ เพิ่ม Role</button>
+      </div>
+      <div class="card-body">
+        <table class="table" id="roles-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>ชื่อ</th>
+              <th>คำอธิบาย</th>
+              <th>System</th>
+              <th>จำนวนผู้ใช้</th>
+              <th>จัดการ</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Modal เพิ่ม Role -->
+    <div class="modal fade" id="createRoleModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">เพิ่ม Role ใหม่</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <form id="createRoleForm">
+              <div class="mb-3">
+                <label class="form-label">ชื่อ Role</label>
+                <input type="text" class="form-control" name="name" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">คำอธิบาย</label>
+                <textarea class="form-control" name="description" required></textarea>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="button" class="btn btn-primary" onclick="createRole()">บันทึก</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `,
+  scripts: `
+    <script>
+      async function loadRoles() {
+        const res = await fetch('/api/admin/roles');
+        const data = await res.json();
+        const tbody = document.querySelector('#roles-table tbody');
+        tbody.innerHTML = data.map(r => 
+          '<tr>' +
+            '<td>' + r.id + '</td>' +
+            '<td>' + r.name + '</td>' +
+            '<td>' + (r.description || '-') + '</td>' +
+            '<td>' + (r.is_system ? '✅' : '❌') + '</td>' +
+            '<td>' + r.user_count + '</td>' +
+            '<td>' +
+              (!r.is_system ? '<button class="btn btn-sm btn-danger" onclick="deleteRole(' + r.id + ')">ลบ</button>' : '-') +
+            '</td>' +
+          '</tr>'
+        ).join('');
+      }
+
+      async function createRole() {
+        const form = document.getElementById('createRoleForm');
+        const data = new FormData(form);
+        const res = await fetch('/api/admin/roles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(Object.fromEntries(data))
+        });
+        if (res.ok) {
+          const modalEl = document.getElementById('createRoleModal');
+          const modal = bootstrap.Modal.getInstance(modalEl);
+          if (modal) modal.hide();
+          form.reset();
+          loadRoles();
+        } else {
+          alert((await res.json()).error);
+        }
+      }
+
+      async function deleteRole(id) {
+        const confirmed = await farmConfirm({
+          title: 'ยืนยันการลบ Role',
+          message: 'คุณแน่ใจหรือไม่ว่าต้องการลบ Role นี้ออกจากระบบ?',
+          type: 'danger',
+          icon: '🗑️',
+          confirmText: 'ลบข้อมูล'
+        });
+        if (!confirmed) return;
+
+        const res = await fetch('/api/admin/roles/' + id, { method: 'DELETE' });
+        if (res.ok) {
+          loadRoles();
+        } else {
+          const err = await res.json();
+          farmAlert(err.error || 'เกิดข้อผิดพลาดในการลบ Role', 'ลบไม่สำเร็จ', 'danger');
+        }
+      }
+
+      function showCreateRoleModal() {
+        new bootstrap.Modal(document.getElementById('createRoleModal')).show();
+      }
+
+      loadRoles();
+    </script>
+  `
+}) %>

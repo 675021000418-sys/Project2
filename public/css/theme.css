@@ -1,0 +1,739 @@
+/* ==========================================================================
+   ธีมธรรมชาติ (Farm Natural Green Theme) สำหรับระบบบริหารฟาร์ม
+   ใช้ตัวแปร CSS และ override Bootstrap 5
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* โทนสีเขียวธรรมชาติและสถานะ */
+  --green-900: #1B4332; /* Sidebar, หัวข้อหลัก */
+  --green-700: #2D6A4F; /* ปุ่มหลัก, ไฮไลต์เข้ม */
+  --green-500: #52B788; /* ลิงก์, สถานะ active */
+  --green-100: #D8F3DC; /* พื้นการ์ด, hover, badge สดชื่น */
+  --cream: #F6F9F4;     /* พื้นหลังของหน้าเว็บ */
+  --earth: #8D6E4A;     /* สีดิน, ไฮไลต์รอง */
+  --warn: #E9A23B;      /* สต็อกต่ำ, ใกล้หมดอายุ */
+  --danger: #C0392B;    /* หมดสต็อก, หมดอายุ */
+
+  /* Override ตัวแปร Bootstrap 5 */
+  --bs-primary: #2D6A4F;
+  --bs-primary-rgb: 45, 106, 79;
+  --bs-secondary: #8D6E4A;
+  --bs-secondary-rgb: 141, 110, 74;
+  --bs-success: #52B788;
+  --bs-success-rgb: 82, 183, 136;
+  --bs-warning: #E9A23B;
+  --bs-warning-rgb: 233, 162, 59;
+  --bs-danger: #C0392B;
+  --bs-danger-rgb: 192, 57, 43;
+  --bs-info: #52B788;
+  --bs-info-rgb: 82, 183, 136;
+  --bs-light: #F6F9F4;
+  --bs-light-rgb: 246, 249, 244;
+  --bs-dark: #1B4332;
+  --bs-dark-rgb: 27, 67, 50;
+
+  /* การจัดวางและ typography */
+  --bs-body-font-family: 'Noto Sans Thai', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --bs-body-bg: var(--cream);
+  --bs-body-color: #264653;
+  --card-radius: 12px;
+  --card-shadow: 0 2px 8px rgba(27, 67, 50, 0.06);
+  --card-shadow-hover: 0 6px 16px rgba(27, 67, 50, 0.12);
+  --topbar-bg: #ffffff;
+  --card-bg: #ffffff;
+  --text-main: #264653;
+  --text-muted: #6c757d;
+  --border-color: rgba(45, 106, 79, 0.08);
+}
+
+/* ==========================================================================
+   ธีมมืดธรรมชาติ (Dark Mode Theme)
+   ========================================================================== */
+[data-bs-theme="dark"] {
+  --cream: #0F1F17;
+  --topbar-bg: #14281E;
+  --card-bg: #193327;
+  --text-main: #E2E8F0;
+  --text-muted: #A0AEC0;
+  --border-color: rgba(82, 183, 136, 0.15);
+
+  --bs-body-bg: var(--cream);
+  --bs-body-color: var(--text-main);
+  --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --card-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+[data-bs-theme="dark"] body {
+  background-color: var(--cream);
+  color: var(--text-main);
+}
+
+[data-bs-theme="dark"] h1, 
+[data-bs-theme="dark"] h2, 
+[data-bs-theme="dark"] h3, 
+[data-bs-theme="dark"] h4, 
+[data-bs-theme="dark"] h5, 
+[data-bs-theme="dark"] h6 {
+  color: #74C69D !important;
+}
+
+[data-bs-theme="dark"] .card {
+  background-color: var(--card-bg) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-main);
+}
+
+[data-bs-theme="dark"] .card-header,
+[data-bs-theme="dark"] .card-footer {
+  background-color: var(--card-bg) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-main);
+}
+
+[data-bs-theme="dark"] .app-topbar {
+  background-color: var(--topbar-bg) !important;
+  border-color: var(--border-color) !important;
+}
+
+[data-bs-theme="dark"] .filter-card {
+  background-color: var(--card-bg) !important;
+  border-color: var(--border-color) !important;
+}
+
+[data-bs-theme="dark"] .table {
+  color: var(--text-main);
+  border-color: var(--border-color);
+}
+
+[data-bs-theme="dark"] .table-light,
+[data-bs-theme="dark"] thead.table-light tr th {
+  background-color: #12241B !important;
+  color: #A7D7C5 !important;
+  border-color: var(--border-color);
+}
+
+[data-bs-theme="dark"] .table-hover tbody tr:hover {
+  background-color: rgba(82, 183, 136, 0.08) !important;
+}
+
+[data-bs-theme="dark"] .form-control,
+[data-bs-theme="dark"] .form-select {
+  background-color: #0F1F17 !important;
+  border-color: #2D6A4F !important;
+  color: #F8FAFC !important;
+}
+
+[data-bs-theme="dark"] .form-control::placeholder {
+  color: #64748B !important;
+}
+
+[data-bs-theme="dark"] .form-control:focus,
+[data-bs-theme="dark"] .form-select:focus {
+  background-color: #162E23 !important;
+  border-color: #52B788 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 0 0 0.25rem rgba(82, 183, 136, 0.25) !important;
+}
+
+[data-bs-theme="dark"] .modal-content {
+  background-color: var(--card-bg);
+  border-color: var(--border-color);
+  color: var(--text-main);
+}
+
+[data-bs-theme="dark"] .modal-header,
+[data-bs-theme="dark"] .modal-footer {
+  border-color: var(--border-color);
+}
+
+[data-bs-theme="dark"] .text-dark {
+  color: #F8FAFC !important;
+}
+
+[data-bs-theme="dark"] .text-muted {
+  color: #CBD5E1 !important;
+}
+
+[data-bs-theme="dark"] .bg-white {
+  background-color: var(--card-bg) !important;
+}
+
+[data-bs-theme="dark"] .bg-light {
+  background-color: #1A3628 !important;
+  color: #F1F5F9 !important;
+}
+
+/* ลิงก์ชื่อสินค้าและรหัสสินค้าในตาราง ให้สว่างชัดเจน */
+[data-bs-theme="dark"] .table td {
+  color: #F1F5F9 !important;
+}
+
+[data-bs-theme="dark"] .table td a {
+  color: #74C69D !important;
+  font-weight: 600;
+}
+
+[data-bs-theme="dark"] .table td a:hover {
+  color: #A7D7C5 !important;
+  text-decoration: underline !important;
+}
+
+[data-bs-theme="dark"] .table td .font-monospace {
+  color: #F8FAFC !important;
+  font-weight: 700 !important;
+}
+
+/* ปุ่มแจ้งเตือนด่วน (Alert Items Button) */
+[data-bs-theme="dark"] .alert-warning {
+  background-color: #2D2006 !important;
+  border-color: #E9A23B !important;
+  color: #FEF3C7 !important;
+}
+
+[data-bs-theme="dark"] .alert-warning .btn-light {
+  background-color: #1A3628 !important;
+  border-color: rgba(82, 183, 136, 0.4) !important;
+  color: #F8FAFC !important;
+}
+
+[data-bs-theme="dark"] .alert-warning .btn-light:hover {
+  background-color: #234735 !important;
+  color: #FFFFFF !important;
+}
+
+/* ป้ายสถานะสต็อกในโหมดมืด */
+[data-bs-theme="dark"] .badge-stock-normal {
+  background-color: rgba(45, 106, 79, 0.4) !important;
+  color: #74C69D !important;
+  border-color: #52B788 !important;
+}
+
+[data-bs-theme="dark"] .badge-stock-near-exp {
+  background-color: rgba(233, 162, 59, 0.25) !important;
+  color: #FCD34D !important;
+  border-color: #E9A23B !important;
+}
+
+[data-bs-theme="dark"] .badge-stock-low {
+  background-color: rgba(234, 88, 12, 0.25) !important;
+  color: #FDBA74 !important;
+  border-color: #EA580C !important;
+}
+
+[data-bs-theme="dark"] .badge-stock-danger {
+  background-color: rgba(192, 57, 43, 0.3) !important;
+  color: #FCA5A5 !important;
+  border-color: #EF4444 !important;
+}
+
+/* ป้ายหมวดหมู่สินค้าในตาราง */
+[data-bs-theme="dark"] .table .badge.bg-light {
+  background-color: #12241B !important;
+  border-color: rgba(82, 183, 136, 0.3) !important;
+}
+[data-bs-theme="dark"] .table .badge.text-success {
+  color: #86EFAC !important;
+}
+[data-bs-theme="dark"] .table .badge.text-primary {
+  color: #93C5FD !important;
+}
+[data-bs-theme="dark"] .table .badge.text-info {
+  color: #67E8F9 !important;
+}
+
+/* ปุ่มดูรายละเอียด และปุ่ม Quick Actions ต่างๆ ในโหมดมืด */
+[data-bs-theme="dark"] .btn-outline-primary {
+  color: #74C69D !important;
+  border-color: #52B788 !important;
+}
+[data-bs-theme="dark"] .btn-outline-primary:hover {
+  background-color: #2D6A4F !important;
+  color: #FFFFFF !important;
+}
+
+[data-bs-theme="dark"] .btn-outline-secondary {
+  color: #E2E8F0 !important;
+  border-color: rgba(226, 232, 240, 0.4) !important;
+}
+[data-bs-theme="dark"] .btn-outline-secondary:hover {
+  background-color: rgba(226, 232, 240, 0.15) !important;
+  color: #FFFFFF !important;
+}
+
+[data-bs-theme="dark"] .btn-outline-warning {
+  color: #FCD34D !important;
+  border-color: #F59E0B !important;
+}
+[data-bs-theme="dark"] .btn-outline-warning:hover {
+  background-color: #D97706 !important;
+  color: #FFFFFF !important;
+}
+
+[data-bs-theme="dark"] .btn-outline-success {
+  color: #86EFAC !important;
+  border-color: #10B981 !important;
+}
+[data-bs-theme="dark"] .btn-outline-success:hover {
+  background-color: #059669 !important;
+  color: #FFFFFF !important;
+}
+
+[data-bs-theme="dark"] .btn-outline-info {
+  color: #67E8F9 !important;
+  border-color: #06B6D4 !important;
+}
+[data-bs-theme="dark"] .btn-outline-info:hover {
+  background-color: #0891B2 !important;
+  color: #FFFFFF !important;
+}
+
+[data-bs-theme="dark"] .btn-outline-dark {
+  color: #E2E8F0 !important;
+  border-color: rgba(148, 163, 184, 0.4) !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+[data-bs-theme="dark"] .btn-outline-dark:hover {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  color: #FFFFFF !important;
+}
+
+/* ปุ่มสลับโหมด Dark/Light */
+.theme-toggle-btn {
+  background: none;
+  border: 1px solid rgba(45, 106, 79, 0.2);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.theme-toggle-btn:hover {
+  background-color: var(--green-100);
+  transform: rotate(15deg);
+}
+
+[data-bs-theme="dark"] .theme-toggle-btn {
+  border-color: rgba(82, 183, 136, 0.3);
+  color: #F6F9F4;
+}
+
+[data-bs-theme="dark"] .theme-toggle-btn:hover {
+  background-color: rgba(82, 183, 136, 0.2);
+}
+
+/* พื้นฐานทั้งหน้า */
+body {
+  font-family: var(--bs-body-font-family);
+  background-color: var(--cream);
+  color: #2d3748;
+  line-height: 1.6;
+}
+
+/* หัวข้อ */
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+  color: var(--green-900);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* การ์ดมุมโค้งมนและเงาบาง */
+.card {
+  border: 1px solid rgba(45, 106, 79, 0.08);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  background-color: #ffffff;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: var(--card-shadow-hover);
+}
+
+.card-header {
+  background-color: #ffffff;
+  border-bottom: 1px solid rgba(45, 106, 79, 0.08);
+  font-weight: 600;
+  padding: 1rem 1.25rem;
+  border-top-left-radius: var(--card-radius) !important;
+  border-top-right-radius: var(--card-radius) !important;
+}
+
+.card-footer {
+  background-color: #ffffff;
+  border-top: 1px solid rgba(45, 106, 79, 0.08);
+  border-bottom-left-radius: var(--card-radius) !important;
+  border-bottom-right-radius: var(--card-radius) !important;
+}
+
+/* ปุ่มหลักและรอง (Touch target อย่างน้อย 44px) */
+.btn {
+  border-radius: 8px;
+  font-weight: 500;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1.25rem;
+  transition: all 0.2s ease;
+}
+
+.btn-sm {
+  min-height: 38px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.875rem;
+}
+
+.btn-primary {
+  background-color: var(--green-700);
+  border-color: var(--green-700);
+  color: #ffffff;
+}
+
+.btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+  background-color: var(--green-900) !important;
+  border-color: var(--green-900) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 10px rgba(27, 67, 50, 0.25);
+}
+
+.btn-secondary {
+  background-color: var(--earth);
+  border-color: var(--earth);
+  color: #ffffff;
+}
+
+.btn-secondary:hover {
+  background-color: #725838;
+  border-color: #725838;
+  color: #ffffff;
+}
+
+.btn-outline-primary {
+  color: var(--green-700);
+  border-color: var(--green-700);
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--green-700);
+  border-color: var(--green-700);
+  color: #ffffff;
+}
+
+/* Input และ Form */
+.form-control, .form-select {
+  border-radius: 8px;
+  border: 1px solid #d2dcd6;
+  min-height: 44px;
+  padding: 0.5rem 0.875rem;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: var(--green-500);
+  box-shadow: 0 0 0 0.25rem rgba(82, 183, 136, 0.25);
+}
+
+/* ==========================================================================
+   ป้ายสถานะสต็อกและคลังเวชภัณฑ์ (Stock Badges)
+   ========================================================================== */
+.badge-stock {
+  font-weight: 600;
+  padding: 0.45em 0.8em;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.825rem;
+}
+
+/* ปกติ */
+.badge-stock-normal {
+  background-color: var(--green-100);
+  color: var(--green-900);
+  border: 1px solid rgba(45, 106, 79, 0.2);
+}
+
+/* ใกล้หมดอายุ */
+.badge-stock-near-exp {
+  background-color: #FEF3D6;
+  color: #925805;
+  border: 1px solid rgba(233, 162, 59, 0.3);
+}
+
+/* สต็อกต่ำ */
+.badge-stock-low {
+  background-color: #FFE8CC;
+  color: #B45309;
+  border: 1px solid rgba(234, 88, 12, 0.3);
+}
+
+/* หมดอายุ / หมดสต็อก */
+.badge-stock-danger {
+  background-color: #FDE8E8;
+  color: var(--danger);
+  border: 1px solid rgba(192, 57, 43, 0.25);
+}
+
+/* ==========================================================================
+   ป้าย Role ประจำตัวผู้ใช้ (Role Badges บน Topbar)
+   ========================================================================== */
+.badge-role {
+  padding: 0.4em 0.85em;
+  border-radius: 30px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* Admin: เขียวเข้มสุด */
+.badge-role-admin {
+  background-color: var(--green-900);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(27, 67, 50, 0.3);
+}
+
+/* Owner (เจ้าของฟาร์ม): เขียวสุขุม */
+.badge-role-owner {
+  background-color: var(--green-700);
+  color: #ffffff;
+}
+
+/* Head (หัวหน้าโรงเรือน): สีเขียวใบไม้อบอุ่น */
+.badge-role-head {
+  background-color: #3B7A57;
+  color: #ffffff;
+}
+
+/* Worker (คนงาน): เขียวสดใส */
+.badge-role-worker {
+  background-color: #40916C;
+  color: #ffffff;
+}
+
+/* แถบแจ้งเตือนโหมดผู้ดูแลระบบ (Admin Mode Bar) */
+.admin-mode-bar {
+  background: linear-gradient(90deg, var(--green-900) 0%, var(--green-700) 100%);
+  color: #ffffff;
+  padding: 0.35rem 1rem;
+  font-size: 0.825rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ==========================================================================
+   โครงสร้าง Layout: Sidebar เขียวเข้ม + Topbar ขาว
+   ========================================================================== */
+.app-container {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Sidebar */
+.app-sidebar {
+  width: 260px;
+  background-color: var(--green-900);
+  color: #ffffff;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease-in-out;
+  z-index: 1040;
+}
+
+.sidebar-brand {
+  padding: 1.25rem 1.5rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  text-decoration: none;
+}
+
+.sidebar-menu {
+  list-style: none;
+  padding: 0.75rem 0;
+  margin: 0;
+  flex-grow: 1;
+}
+
+.sidebar-menu a {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1.5rem;
+  color: #d8f3dc;
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  min-height: 44px;
+}
+
+.sidebar-menu a:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  padding-left: 1.75rem;
+}
+
+.sidebar-menu a.active {
+  background-color: var(--green-700);
+  color: #ffffff;
+  font-weight: 600;
+  border-left: 4px solid var(--green-500);
+}
+
+.sidebar-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Main Area */
+.app-main {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background-color: var(--cream);
+}
+
+/* Topbar สีขาว */
+.app-topbar {
+  background-color: #ffffff;
+  border-bottom: 1px solid rgba(45, 106, 79, 0.1);
+  padding: 0.75rem 1.5rem;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+}
+
+.app-content {
+  padding: 1.75rem;
+  flex-grow: 1;
+}
+
+/* ==========================================================================
+   Responsive: Mobile Sidebar (Offcanvas / Hamburger)
+   ========================================================================== */
+.sidebar-toggler {
+  display: none;
+  background: none;
+  border: 1px solid #d2dcd6;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  min-height: 44px;
+  min-width: 44px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--green-900);
+}
+
+@media (max-width: 991.98px) {
+  .sidebar-toggler {
+    display: inline-flex;
+  }
+
+  .app-sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    transform: translateX(-100%);
+    box-shadow: 4px 0 15px rgba(0, 0, 0, 0.2);
+  }
+
+  .app-sidebar.show {
+    transform: translateX(0);
+  }
+
+  .sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+    z-index: 1030;
+  }
+
+  .sidebar-backdrop.show {
+    display: block;
+  }
+
+  .app-content {
+    padding: 1rem;
+  }
+}
+
+/* ==========================================================================
+   Code & Path Pattern Styling (ธีมธรรมชาติ สบายตา)
+   ========================================================================== */
+code {
+  color: var(--green-700, #2D6A4F) !important;
+  background-color: rgba(45, 106, 79, 0.08) !important;
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+  font-size: 0.875em;
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  border: 1px solid rgba(45, 106, 79, 0.15);
+}
+
+[data-bs-theme="dark"] code {
+  color: #74C69D !important;
+  background-color: rgba(82, 183, 136, 0.15) !important;
+  border-color: rgba(82, 183, 136, 0.25) !important;
+}
+
+/* ==========================================================================
+   ปุ่มเมนูด่วน (Quick Action Buttons ใน Dashboard)
+   ========================================================================== */
+.btn-quick-action {
+  background-color: #ffffff;
+  color: var(--green-900);
+  border: 1px solid rgba(45, 106, 79, 0.15);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.btn-quick-action:hover {
+  background-color: var(--green-100);
+  color: var(--green-900);
+  border-color: var(--green-500);
+  transform: translateX(4px);
+}
+
+[data-bs-theme="dark"] .btn-quick-action {
+  background-color: #162E23;
+  color: #E2E8F0;
+  border-color: rgba(82, 183, 136, 0.2);
+}
+
+[data-bs-theme="dark"] .btn-quick-action:hover {
+  background-color: #244A38;
+  color: #FFFFFF;
+  border-color: #52B788;
+  transform: translateX(4px);
+}
+
+

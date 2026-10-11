@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>เข้าสู่ระบบ - ระบบบริหารฟาร์ม</title>
+  <!-- Bootstrap 5 CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- ธีมธรรมชาติ (Natural Green Theme) -->
+  <link rel="stylesheet" href="/css/theme.css">
+  <style>
+    /* สไตล์เฉพาะหน้า Login: จัดการ์ดกลางหน้าจอ */
+    body {
+      background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 50%, #d8f3dc 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      transition: background 0.3s ease;
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .login-card {
+      background: #ffffff;
+      border-radius: 16px;
+      border: 1px solid rgba(45, 106, 79, 0.12);
+      box-shadow: 0 10px 25px rgba(27, 67, 50, 0.08);
+      padding: 2.5rem 2rem;
+      transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+
+    .login-brand {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .login-brand .logo-icon {
+      font-size: 3rem;
+      line-height: 1;
+      display: inline-block;
+      margin-bottom: 0.5rem;
+      filter: drop-shadow(0 2px 4px rgba(45, 106, 79, 0.15));
+    }
+
+    .login-brand h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--green-900);
+      margin-bottom: 0.25rem;
+    }
+
+    .login-brand p {
+      color: #6c757d;
+      font-size: 0.9rem;
+      margin-bottom: 0;
+    }
+
+    .test-accounts-box {
+      background-color: var(--cream);
+      border: 1px dashed rgba(45, 106, 79, 0.25);
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-size: 0.8rem;
+      color: #4a5568;
+    }
+
+    /* เมื่อเปิด Dark Mode */
+    [data-bs-theme="dark"] body {
+      background: linear-gradient(135deg, #09140e 0%, #0f1f17 50%, #14281e 100%) !important;
+    }
+
+    [data-bs-theme="dark"] .login-card {
+      background: #14281E !important;
+      border-color: rgba(82, 183, 136, 0.2) !important;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    [data-bs-theme="dark"] .login-brand h1 {
+      color: #74C69D !important;
+    }
+
+    [data-bs-theme="dark"] .login-brand p {
+      color: #94A3B8 !important;
+    }
+
+    [data-bs-theme="dark"] .test-accounts-box {
+      background-color: #0d1a13 !important;
+      border-color: rgba(82, 183, 136, 0.3) !important;
+      color: #CBD5E1 !important;
+    }
+
+    [data-bs-theme="dark"] .test-accounts-box strong {
+      color: #74C69D !important;
+    }
+
+    .test-acc-btn {
+      transition: all 0.2s ease;
+      border-radius: 6px;
+      color: #2D3748;
+      background-color: rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(45, 106, 79, 0.15) !important;
+    }
+
+    .test-acc-btn:hover {
+      background-color: var(--green-700) !important;
+      color: #ffffff !important;
+      transform: translateX(4px);
+      box-shadow: 0 3px 8px rgba(45, 106, 79, 0.25);
+    }
+
+    .test-acc-btn:hover .acc-title strong {
+      color: #ffffff !important;
+    }
+
+    .test-acc-btn:hover .acc-badge {
+      background-color: #ffffff !important;
+      color: var(--green-900) !important;
+      border-color: #ffffff !important;
+    }
+
+    [data-bs-theme="dark"] .test-acc-btn {
+      color: #E2E8F0 !important;
+      background-color: rgba(255, 255, 255, 0.05);
+      border-color: rgba(82, 183, 136, 0.25) !important;
+    }
+
+    [data-bs-theme="dark"] .test-acc-btn:hover {
+      background-color: var(--green-600) !important;
+      color: #ffffff !important;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    [data-bs-theme="dark"] .form-label {
+      color: #E2E8F0 !important;
+    }
+  </style>
+</head>
+<body>
+  <!-- ปุ่มสลับโหมดมืด/สว่าง มุมขวาบน -->
+  <div style="position: fixed; top: 1rem; right: 1rem; z-index: 1000;">
+    <button type="button" class="theme-toggle-btn shadow-sm" onclick="toggleTheme()" title="สลับโหมดมืด/สว่าง">
+      🌙
+    </button>
+  </div>
+
+  <div class="login-container">
+    <div class="login-card">
+      <!-- โลโก้และหัวข้อ -->
+      <div class="login-brand">
+        <div class="logo-icon">🌿</div>
+        <h1>ระบบบริหารฟาร์ม</h1>
+        <p>เข้าสู่ระบบเพื่อจัดการฟาร์มและคลังเวชภัณฑ์</p>
+      </div>
+
+      <!-- แสดงข้อความ Error หากมี -->
+      <% if (error) { %>
+        <div class="alert alert-danger py-2 px-3 small d-flex align-items-center mb-3" role="alert">
+          <span class="me-2">⚠️</span>
+          <div><%= error %></div>
+        </div>
+      <% } %>
+
+      <!-- ฟอร์มเข้าสู่ระบบ -->
+      <form method="POST" action="/login">
+        <div class="mb-3">
+          <label for="username" class="form-label fw-semibold text-dark">ชื่อผู้ใช้</label>
+          <input 
+            type="text" 
+            class="form-control" 
+            id="username" 
+            name="username" 
+            placeholder="กรอกชื่อผู้ใช้" 
+            required 
+            autofocus
+          >
+        </div>
+
+        <div class="mb-4">
+          <label for="password" class="form-label fw-semibold text-dark">รหัสผ่าน</label>
+          <input 
+            type="password" 
+            class="form-control" 
+            id="password" 
+            name="password" 
+            placeholder="กรอกรหัสผ่าน" 
+            required
+          >
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 fs-6">
+          เข้าสู่ระบบ
+        </button>
+      </form>
+
+      <!-- บัญชีทดสอบ -->
+      <div class="test-accounts-box mt-4">
+        <div class="fw-bold mb-2 text-dark d-flex align-items-center justify-content-between">
+          <span>💡 บัญชีสำหรับทดสอบ:</span>
+          <span class="badge bg-success bg-opacity-25 text-success small">คลิกเพื่อใส่รหัส</span>
+        </div>
+        <div class="d-grid gap-1">
+          <button type="button" class="btn btn-sm text-start py-1 px-2 border-0 test-acc-btn d-flex justify-content-between align-items-center" onclick="fillAccount('admin', 'test1234')">
+            <span class="acc-title">• <strong>Admin</strong></span>
+            <span class="badge bg-white text-dark border small font-monospace acc-badge">คลิกใส่รหัส 🔑</span>
+          </button>
+          <button type="button" class="btn btn-sm text-start py-1 px-2 border-0 test-acc-btn d-flex justify-content-between align-items-center" onclick="fillAccount('owner1', 'test1234')">
+            <span class="acc-title">• <strong>Owner</strong></span>
+            <span class="badge bg-white text-dark border small font-monospace acc-badge">คลิกใส่รหัส 🔑</span>
+          </button>
+          <button type="button" class="btn btn-sm text-start py-1 px-2 border-0 test-acc-btn d-flex justify-content-between align-items-center" onclick="fillAccount('head1', 'test1234')">
+            <span class="acc-title">• <strong>Head</strong></span>
+            <span class="badge bg-white text-dark border small font-monospace acc-badge">คลิกใส่รหัส 🔑</span>
+          </button>
+          <button type="button" class="btn btn-sm text-start py-1 px-2 border-0 test-acc-btn d-flex justify-content-between align-items-center" onclick="fillAccount('worker1', 'test1234')">
+            <span class="acc-title">• <strong>Worker</strong></span>
+            <span class="badge bg-white text-dark border small font-monospace acc-badge">คลิกใส่รหัส 🔑</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function fillAccount(username, password) {
+      const uInput = document.getElementById('username');
+      const pInput = document.getElementById('password');
+      uInput.value = username;
+      pInput.value = password;
+      
+      // เอฟเฟกต์ไฮไลต์กระพริบให้เห็นชัดเจนว่ากรอกให้แล้ว
+      [uInput, pInput].forEach(el => {
+        el.classList.add('is-valid');
+        setTimeout(() => el.classList.remove('is-valid'), 800);
+      });
+      pInput.focus();
+    }
+  </script>
+  <!-- สคริปต์สลับโหมดมืด/สว่าง -->
+  <script src="/js/theme-toggle.js"></script>
+</body>
+</html>
