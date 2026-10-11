@@ -18,6 +18,14 @@
       color: #6c757d;
       opacity: 0.85;
     }
+    .batch-row-expired {
+      background-color: rgba(220, 53, 69, 0.08) !important;
+      border-left: 4px solid #dc3545 !important;
+    }
+    .batch-row-near-exp {
+      background-color: rgba(255, 193, 7, 0.1) !important;
+      border-left: 4px solid #ffc107 !important;
+    }
 
     [data-bs-theme="dark"] .highlight-next-deduct {
       background-color: rgba(45, 106, 79, 0.35) !important;
@@ -31,6 +39,24 @@
     }
     [data-bs-theme="dark"] .batch-row-empty td {
       color: #94a3b8 !important;
+      background-color: transparent !important;
+    }
+    [data-bs-theme="dark"] .batch-row-expired {
+      background-color: rgba(220, 53, 69, 0.15) !important;
+      border-left: 4px solid #ef4444 !important;
+      color: #fca5a5 !important;
+    }
+    [data-bs-theme="dark"] .batch-row-expired td {
+      color: #fca5a5 !important;
+      background-color: transparent !important;
+    }
+    [data-bs-theme="dark"] .batch-row-near-exp {
+      background-color: rgba(245, 158, 11, 0.15) !important;
+      border-left: 4px solid #f59e0b !important;
+      color: #fcd34d !important;
+    }
+    [data-bs-theme="dark"] .batch-row-near-exp td {
+      color: #fcd34d !important;
       background-color: transparent !important;
     }
   </style>
@@ -263,9 +289,9 @@
                   } else if (b.qty_remaining <= 0 || b.lot_status === 'empty') {
                     rowClass = 'batch-row-empty';
                   } else if (b.lot_status === 'expired') {
-                    rowClass = 'table-danger';
+                    rowClass = 'batch-row-expired';
                   } else if (b.lot_status === 'near_exp') {
-                    rowClass = 'table-warning';
+                    rowClass = 'batch-row-near-exp';
                   }
                 %>
                 <tr class="<%= rowClass %>">
