@@ -1066,6 +1066,9 @@
           return;
         }
 
+        // ปิด disposeModal ชั่วคราวเพื่อให้ farmConfirm แสดงขึ้นมาข้างหน้าได้อย่างถูกต้อง
+        disposeModal.hide();
+
         const confirmed = await farmConfirm({
           title: 'ยืนยันการทำลายล็อตสินค้า',
           message: `ยืนยันการทำลายล็อต ${data.lot_no || ''} จำนวน ${data.qty} <%= item.base_unit %>?\nสถานะจะถูกบันทึกเป็น "ทำลายแล้ว" อย่างถาวร`,
@@ -1073,7 +1076,12 @@
           icon: '🔥',
           confirmText: 'ยืนยันทำลาย'
         });
-        if (!confirmed) return;
+
+        if (!confirmed) {
+          // หากผู้ใช้กดยกเลิกใน confirm ให้เปิด disposeModal กลับมา
+          disposeModal.show();
+          return;
+        }
 
         try {
           const res = await fetch(`/app/inventory/${itemId}/dispose`, {
@@ -1083,14 +1091,15 @@
           });
           const result = await res.json().catch(() => null);
           if (!res.ok) {
+            disposeModal.show();
             errBox.textContent = (result && result.error) ? result.error : `เกิดข้อผิดพลาดจากเซิร์ฟเวอร์ (HTTP ${res.status})`;
             errBox.classList.remove('d-none');
             return;
           }
           await farmAlert(`✅ ${result.message}\nสถานะ: ทำลายแล้ว (Completed)`, 'สำเร็จ', 'success');
-          disposeModal.hide();
           window.location.reload();
         } catch (err) {
+          disposeModal.show();
           errBox.textContent = 'เชื่อมต่อเซิร์ฟเวอร์ล้มเหลว: ' + (err.message || 'เครือข่ายขัดข้อง');
           errBox.classList.remove('d-none');
         }

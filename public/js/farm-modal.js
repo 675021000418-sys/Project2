@@ -6,8 +6,8 @@
     if (document.getElementById('farmConfirmModal')) return;
 
     const modalHTML = `
-      <div class="modal fade" id="farmConfirmModal" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
-        <div class="modal-dialog modal-dialog-centered" style="max-width: 460px;">
+      <div class="modal fade" id="farmConfirmModal" tabindex="-1" aria-hidden="true" style="z-index: 1090;">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 460px; z-index: 1095;">
           <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden; background: var(--card-bg, #ffffff); border: 1px solid var(--border-color, rgba(45,106,79,0.15)) !important;">
             <div class="modal-body p-4 text-center">
               <div id="farmModalIconWrapper" class="mb-3 d-inline-flex align-items-center justify-content-center" style="width: 64px; height: 64px; border-radius: 50%; font-size: 2rem;">
