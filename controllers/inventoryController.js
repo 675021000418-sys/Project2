@@ -60,6 +60,33 @@ function formatZodErrors(err) {
 }
 
 /**
+ * ตรวจสอบความถูกต้องของจำนวนตามประเภทหน่วย
+ * - ถ้าหน่วยเป็น 'ขวด' (หรือแผง, โหล) จะต้องเป็นจำนวนเต็มเท่านั้น ห้ามมีทศนิยม
+ * - ถ้าเป็นหน่วยที่รองรับทศนิยม เช่น ถุง, กระสอบ, กก., กรัม, มล. จะมีทศนิยมได้
+ */
+function validateUnitQuantity(qty, unit) {
+  const num = parseFloat(qty);
+  if (isNaN(num) || num <= 0) {
+    return { valid: false, message: 'จำนวนต้องมากกว่า 0' };
+  }
+
+  const u = (unit || '').toLowerCase();
+  const isDiscreteUnit = u.includes('ขวด') || u.includes('แผง') || u.includes('โหล');
+
+  if (isDiscreteUnit) {
+    // ต้องเป็นจำนวนเต็มเท่านั้น
+    if (!Number.isInteger(num) && Math.abs(num - Math.round(num)) > 0.0001) {
+      return {
+        valid: false,
+        message: `หน่วย "${unit}" ต้องระบุเป็นจำนวนเต็มเท่านั้น ไม่สามารถใส่จุดทศนิยมได้`
+      };
+    }
+  }
+
+  return { valid: true };
+}
+
+/**
  * GET /app/inventory - หน้าภาพรวมสต็อก
  */
 async function renderInventoryPage(req, res, next) {
@@ -683,6 +710,16 @@ async function submitRequisition(req, res, next) {
     }
 
     const requestQty = parseFloat(qty);
+    if (isNaN(requestQty) || requestQty <= 0) {
+      return res.status(400).json({ error: 'กรุณาระบุจำนวนที่ต้องการเบิกให้ถูกต้อง' });
+    }
+
+    // ตรวจสอบกติกาหน่วยนับ (เช่น ขวดห้ามมีจุดทศนิยม)
+    const unitValidation = validateUnitQuantity(requestQty, item.base_unit);
+    if (!unitValidation.valid) {
+      return res.status(400).json({ error: unitValidation.message });
+    }
+
     const usableStock = parseFloat(item.total_usable_stock);
 
     if (requestQty > usableStock) {
@@ -696,12 +733,12 @@ async function submitRequisition(req, res, next) {
       `INSERT INTO supply_requests (requester_id, house_id, item_id, qty, reason, status)
        VALUES ($1, $2, $3, $4, $5, 'pending')
        RETURNING id, created_at`,
-      [requesterId, parseInt(house_id), itemId, parseInt(qty), reason ? reason.trim() : '']
+      [requesterId, parseInt(house_id), itemId, requestQty, reason ? reason.trim() : '']
     );
 
     res.json({
       success: true,
-      message: `ยื่นคำขอเบิก "${itemCheck.rows[0].name}" จำนวน ${qty} รายการ เรียบร้อยแล้ว (สถานะ: รออนุมัติ)`,
+      message: `ยื่นคำขอเบิก "${itemCheck.rows[0].name}" จำนวน ${requestQty} ${item.base_unit} เรียบร้อยแล้ว (สถานะ: รออนุมัติ)`,
       requestId: insertRes.rows[0].id
     });
   } catch (err) {

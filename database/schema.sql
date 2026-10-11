@@ -225,7 +225,7 @@ CREATE TABLE IF NOT EXISTS supply_requests (
   requester_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
   house_id INTEGER REFERENCES houses(id) ON DELETE SET NULL,
   item_id INTEGER REFERENCES items(id) ON DELETE SET NULL,
-  qty INTEGER NOT NULL CHECK (qty > 0),
+  qty NUMERIC(12, 2) NOT NULL CHECK (qty > 0),
   reason TEXT,
   status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'dispensed', 'completed', 'cancelled')),
   approved_by INTEGER REFERENCES users(id) ON DELETE SET NULL,

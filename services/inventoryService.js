@@ -80,11 +80,12 @@ async function issueStock(itemId, requestedQty, userId, note = '') {
     const deductions = [];
 
     for (const batch of availableBatches) {
-      if (remainingToDeduct <= 0) break;
+      if (remainingToDeduct <= 0.0001) break;
 
       const currentRemaining = parseFloat(batch.qty_remaining);
       const deductFromThisBatch = Math.min(currentRemaining, remainingToDeduct);
-      const newBalance = currentRemaining - deductFromThisBatch;
+      const newBalance = Math.round((currentRemaining - deductFromThisBatch) * 100) / 100;
+      const actualDeduct = Math.round(deductFromThisBatch * 100) / 100;
 
       // อัปเดตยอดคงเหลือในล็อต
       await client.query(
@@ -98,18 +99,18 @@ async function issueStock(itemId, requestedQty, userId, note = '') {
       await client.query(
         `INSERT INTO stock_transactions (item_id, batch_id, type, qty, balance_after, performed_by, note)
          VALUES ($1, $2, 'issue', $3, $4, $5, $6)`,
-        [itemId, batch.id, deductFromThisBatch, newBalance, userId, note || `จ่ายออก (${item.category.toUpperCase()})`]
+        [itemId, batch.id, actualDeduct, newBalance, userId, note || `จ่ายออก (${item.category.toUpperCase()})`]
       );
 
       deductions.push({
         batchId: batch.id,
         lotNo: batch.lot_no,
         expDate: batch.exp_date,
-        deductedQty: deductFromThisBatch,
+        deductedQty: actualDeduct,
         balanceAfter: newBalance,
       });
 
-      remainingToDeduct -= deductFromThisBatch;
+      remainingToDeduct = Math.round((remainingToDeduct - deductFromThisBatch) * 100) / 100;
     }
 
     await client.query('COMMIT');

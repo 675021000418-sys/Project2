@@ -689,12 +689,23 @@
               </div>
 
               <div class="mb-3">
+                <% 
+                  const isBottle = (item.base_unit || '').includes('ขวด') || (item.base_unit || '').includes('แผง') || (item.base_unit || '').includes('โหล');
+                %>
                 <label for="request_qty" class="form-label fw-semibold">จำนวนที่ต้องการเบิก (<%= item.base_unit %>) <span class="text-danger">*</span></label>
                 <div class="input-group">
-                  <input type="number" class="form-control" id="request_qty" name="qty" min="1" step="1" placeholder="ระบุจำนวน" required>
+                  <input type="number" class="form-control" id="request_qty" name="qty" 
+                         min="<%= isBottle ? '1' : '0.01' %>" 
+                         step="<%= isBottle ? '1' : '0.01' %>" 
+                         placeholder="<%= isBottle ? 'ระบุจำนวนเต็ม (ห้ามมีจุด)' : 'ระบุจำนวน (ใส่ทศนิยมได้)' %>" required>
                   <span class="input-group-text"><%= item.base_unit %></span>
                 </div>
                 <div class="form-text">
+                  <% if (isBottle) { %>
+                    <span class="text-primary fw-semibold">ℹ️ หน่วยเป็นขวด ต้องระบุเป็นจำนวนเต็มเท่านั้น</span> | 
+                  <% } else { %>
+                    <span class="text-success fw-semibold">ℹ️ หน่วยเป็น<%= item.base_unit %> สามารถระบุทศนิยมได้</span> | 
+                  <% } %>
                   สต็อกพร้อมใช้ปัจจุบัน: <strong><%= parseFloat(item.total_usable_stock || 0).toLocaleString() %></strong> <%= item.base_unit %>
                 </div>
               </div>
@@ -765,15 +776,23 @@
           return;
         }
 
-        if (!data.qty || parseInt(data.qty) <= 0) {
-          errBox.textContent = 'กรุณาระบุจำนวนที่ต้องการเบิกให้ถูกต้อง';
+        const reqNum = parseFloat(data.qty);
+        if (isNaN(reqNum) || reqNum <= 0) {
+          errBox.textContent = 'กรุณาระบุจำนวนที่ต้องการเบิกให้ถูกต้อง (ต้องมากกว่า 0)';
+          errBox.classList.remove('d-none');
+          return;
+        }
+
+        const isBottleUnit = "<%= (item.base_unit || '').includes('ขวด') || (item.base_unit || '').includes('แผง') || (item.base_unit || '').includes('โหล') %>" === "true";
+        if (isBottleUnit && (!Number.isInteger(reqNum) && Math.abs(reqNum - Math.round(reqNum)) > 0.0001)) {
+          errBox.textContent = `หน่วย "<%= item.base_unit %>" ต้องระบุเป็นจำนวนเต็มเท่านั้น ไม่สามารถใส่จุดทศนิยมได้`;
           errBox.classList.remove('d-none');
           return;
         }
 
         const maxAvailable = parseFloat("<%= item.total_usable_stock || 0 %>");
-        if (parseFloat(data.qty) > maxAvailable) {
-          errBox.textContent = `ของในสต็อกไม่เพียงพอ (ต้องการเบิก: ${parseFloat(data.qty).toLocaleString()} <%= item.base_unit %>, มีพร้อมใช้: ${maxAvailable.toLocaleString()} <%= item.base_unit %>)`;
+        if (reqNum > maxAvailable) {
+          errBox.textContent = `ของในสต็อกไม่เพียงพอ (ต้องการเบิก: ${reqNum.toLocaleString()} <%= item.base_unit %>, มีพร้อมใช้: ${maxAvailable.toLocaleString()} <%= item.base_unit %>)`;
           errBox.classList.remove('d-none');
           return;
         }
