@@ -148,7 +148,7 @@ CREATE TABLE IF NOT EXISTS stock_transactions (
   id SERIAL PRIMARY KEY,
   item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE RESTRICT,
   batch_id INTEGER NOT NULL REFERENCES inventory_batches(id) ON DELETE RESTRICT,
-  type VARCHAR(20) NOT NULL CHECK (type IN ('receive', 'issue', 'adjust')),
+  type VARCHAR(20) NOT NULL CHECK (type IN ('receive', 'issue', 'adjust', 'dispose')),
   qty NUMERIC(12, 2) NOT NULL CHECK (qty > 0),
   balance_after NUMERIC(12, 2) NOT NULL,
   performed_by INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
@@ -158,6 +158,24 @@ CREATE TABLE IF NOT EXISTS stock_transactions (
 CREATE INDEX IF NOT EXISTS idx_tx_item_id ON stock_transactions (item_id);
 CREATE INDEX IF NOT EXISTS idx_tx_batch_id ON stock_transactions (batch_id);
 CREATE INDEX IF NOT EXISTS idx_tx_created_at ON stock_transactions (created_at);
+
+-- ตาราง disposal_records สำหรับเก็บบันทึกประวัติและหลักฐานการทำลายสินค้าหมดอายุ
+CREATE TABLE IF NOT EXISTS disposal_records (
+  id SERIAL PRIMARY KEY,
+  item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE RESTRICT,
+  batch_id INTEGER NOT NULL REFERENCES inventory_batches(id) ON DELETE RESTRICT,
+  qty NUMERIC(12, 2) NOT NULL CHECK (qty > 0),
+  reason TEXT NOT NULL,
+  disposal_method VARCHAR(100) NOT NULL,
+  witness_name VARCHAR(100),
+  disposed_by INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  disposed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  status VARCHAR(20) NOT NULL DEFAULT 'completed',
+  note TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_disposal_item_id ON disposal_records (item_id);
+CREATE INDEX IF NOT EXISTS idx_disposal_batch_id ON disposal_records (batch_id);
+CREATE INDEX IF NOT EXISTS idx_disposal_at ON disposal_records (disposed_at);
 
 -- Trigger ป้องกัน UPDATE/DELETE บน stock_transactions
 CREATE OR REPLACE FUNCTION prevent_stock_transaction_modifications()

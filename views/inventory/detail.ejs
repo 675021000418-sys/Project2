@@ -1081,9 +1081,9 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
           });
-          const result = await res.json();
+          const result = await res.json().catch(() => null);
           if (!res.ok) {
-            errBox.textContent = result.error || 'เกิดข้อผิดพลาด';
+            errBox.textContent = (result && result.error) ? result.error : `เกิดข้อผิดพลาดจากเซิร์ฟเวอร์ (HTTP ${res.status})`;
             errBox.classList.remove('d-none');
             return;
           }
@@ -1091,7 +1091,7 @@
           disposeModal.hide();
           window.location.reload();
         } catch (err) {
-          errBox.textContent = 'เชื่อมต่อเซิร์ฟเวอร์ล้มเหลว';
+          errBox.textContent = 'เชื่อมต่อเซิร์ฟเวอร์ล้มเหลว: ' + (err.message || 'เครือข่ายขัดข้อง');
           errBox.classList.remove('d-none');
         }
       }
