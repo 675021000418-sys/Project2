@@ -256,11 +256,11 @@
   <script>
     async function approveReq(id) {
       const confirmed = await farmConfirm({
-        title: 'ยืนยันการอนุมัติคำขอเบิก',
-        message: `คุณต้องการอนุมัติคำขอเบิก #${id} ใช่หรือไม่?`,
+        title: 'ยืนยันการอนุมัติและตัดจ่ายสต็อก',
+        message: `คุณต้องการอนุมัติคำขอเบิก #${id} ใช่หรือไม่?\n(ระบบจะทำการตัดยอดสต็อกตามหลัก FEFO/FIFO ทันที)`,
         type: 'success',
         icon: '✅',
-        confirmText: 'อนุมัติคำขอ'
+        confirmText: 'อนุมัติและตัดสต็อก'
       });
       if (!confirmed) return;
 

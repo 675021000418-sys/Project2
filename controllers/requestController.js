@@ -83,17 +83,34 @@ async function approveRequest(req, res, next) {
       });
     }
 
+    // ตัดสต็อกคลังทันทีตาม FEFO/FIFO เมื่อได้รับการอนุมัติ
+    const noteText = `ตัดสต็อกอัตโนมัติจากการอนุมัติใบเบิก #${currentReq.id} (โรงเรือน ${currentReq.house_id})`;
+    const issueResult = await inventoryService.issueStock(
+      currentReq.item_id,
+      requestedQty,
+      approverId,
+      noteText
+    );
+
+    // อัปเดตสถานะเป็น dispensed (หรืออนุมัติและตัดจ่ายของเรียบร้อย)
     await pool.query(
       `UPDATE supply_requests 
-       SET status = 'approved', approved_by = $1, approve_note = $2, updated_at = NOW() 
+       SET status = 'dispensed', approved_by = $1, dispensed_by = $1, approve_note = $2, updated_at = NOW() 
        WHERE id = $3`,
       [approverId, note ? note.trim() : null, requestId]
     );
 
-    res.json({ success: true, message: 'อนุมัติคำขอเบิกเรียบร้อยแล้ว' });
+    res.json({
+      success: true,
+      message: `อนุมัติคำขอเบิกและตัดสต็อกสินค้า "${currentReq.item_name}" จำนวน ${requestedQty} ${currentReq.base_unit} เรียบร้อยแล้ว`,
+      data: issueResult
+    });
   } catch (err) {
-    console.error('Approve error:', err);
-    res.status(500).json({ error: 'เกิดข้อผิดพลาดในการอนุมัติ' });
+    console.error('Approve and deduct error:', err);
+    if (err.status) {
+      return res.status(err.status).json({ error: err.message });
+    }
+    res.status(500).json({ error: err.message || 'เกิดข้อผิดพลาดในการอนุมัติและตัดสต็อก' });
   }
 }
 
