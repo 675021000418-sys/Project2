@@ -283,12 +283,17 @@
     }
 
     async function rejectReq(id) {
-      const reason = prompt('กรุณาระบุเหตุผลในการปฏิเสธคำขอเบิกนี้:');
+      const reason = await farmPrompt({
+        title: 'ปฏิเสธคำขอเบิกพัสดุ',
+        message: 'กรุณาระบุเหตุผลในการปฏิเสธคำขอเบิกนี้เพื่อแจ้งให้ผู้เบิกทราบ:',
+        placeholder: 'เช่น ยอดคงเหลือไม่เพียงพอ, ระบุข้อมูลไม่ครบถ้วน, เกินความจำเป็น...',
+        required: true,
+        requiredMessage: 'จำเป็นต้องระบุเหตุผลในการปฏิเสธคำขอเบิก',
+        type: 'danger',
+        icon: '🚫',
+        confirmText: 'ยืนยันปฏิเสธ'
+      });
       if (reason === null) return;
-      if (!reason.trim()) {
-        alert('จำเป็นต้องระบุเหตุผลในการปฏิเสธ');
-        return;
-      }
 
       try {
         const res = await fetch(`/app/requests/${id}/reject`, {
