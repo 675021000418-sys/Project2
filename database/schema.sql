@@ -222,9 +222,9 @@ FROM v_item_stock;
 -- ตาราง supply_requests (คำขอเบิกวัสดุ)
 CREATE TABLE IF NOT EXISTS supply_requests (
   id SERIAL PRIMARY KEY,
-  requester_id INTEGER NOT NULL REFERENCES users(id) ON DELETE SET NULL,
-  house_id INTEGER NOT NULL REFERENCES houses(id) ON DELETE SET NULL,
-  item_id INTEGER NOT NULL REFERENCES supply_items(id) ON DELETE SET NULL,
+  requester_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  house_id INTEGER REFERENCES houses(id) ON DELETE SET NULL,
+  item_id INTEGER REFERENCES items(id) ON DELETE SET NULL,
   qty INTEGER NOT NULL CHECK (qty > 0),
   reason TEXT,
   status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'dispensed', 'completed', 'cancelled')),

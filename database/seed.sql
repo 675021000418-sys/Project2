@@ -297,10 +297,12 @@ BEGIN
   IF v_bid IS NOT NULL THEN
     INSERT INTO stock_transactions (item_id, batch_id, type, qty, balance_after, performed_by, note)
     VALUES (v_i9, v_bid, 'receive', 25, 25, v_uid, 'ยอดยกมาเริ่มต้น');
+  END IF;
 END $$;
 
--- ผูก endpoint_permissions เริ่มต้นสำหรับระบบคลังสินค้า
+-- ผูก endpoint_permissions เริ่มต้นสำหรับระบบคลังสินค้า และระบบอื่นๆ
 INSERT INTO endpoint_permissions (method, path_pattern, permission_id) VALUES
+-- คลังสินค้า
 ('GET', '^/app/inventory$', (SELECT id FROM permissions WHERE key = 'inventory.read')),
 ('GET', '^/app/inventory/[0-9]+$', (SELECT id FROM permissions WHERE key = 'inventory.read')),
 ('GET', '^/api/inventory/summary$', (SELECT id FROM permissions WHERE key = 'inventory.read')),
@@ -309,6 +311,49 @@ INSERT INTO endpoint_permissions (method, path_pattern, permission_id) VALUES
 ('DELETE', '^/app/inventory/[0-9]+$', (SELECT id FROM permissions WHERE key = 'inventory.delete')),
 ('POST', '^/app/inventory/[0-9]+/receive$', (SELECT id FROM permissions WHERE key = 'inventory.receive')),
 ('POST', '^/app/inventory/[0-9]+/issue$', (SELECT id FROM permissions WHERE key = 'inventory.issue')),
-('POST', '^/app/inventory/[0-9]+/adjust$', (SELECT id FROM permissions WHERE key = 'inventory.adjust'))
+('POST', '^/app/inventory/[0-9]+/adjust$', (SELECT id FROM permissions WHERE key = 'inventory.adjust')),
+
+-- คำขอเบิก
+('GET', '^/app/requests$', (SELECT id FROM permissions WHERE key = 'request.read')),
+('POST', '^/app/requests/[0-9]+/approve$', (SELECT id FROM permissions WHERE key = 'request.approve')),
+('POST', '^/app/requests/[0-9]+/reject$', (SELECT id FROM permissions WHERE key = 'request.reject')),
+('POST', '^/app/requests/[0-9]+/dispense$', (SELECT id FROM permissions WHERE key = 'request.dispense')),
+('POST', '^/app/requests/[0-9]+/cancel$', (SELECT id FROM permissions WHERE key = 'request.cancel')),
+('POST', '^/app/inventory/[0-9]+/request$', (SELECT id FROM permissions WHERE key = 'request.create')),
+
+-- ผู้ใช้ (Users API)
+('GET', '^/api/admin/users$', (SELECT id FROM permissions WHERE key = 'user.read')),
+('POST', '^/api/admin/users$', (SELECT id FROM permissions WHERE key = 'user.create')),
+('PUT', '^/api/admin/users/[0-9]+$', (SELECT id FROM permissions WHERE key = 'user.update')),
+('DELETE', '^/api/admin/users/[0-9]+$', (SELECT id FROM permissions WHERE key = 'user.delete')),
+('POST', '^/api/admin/users/role$', (SELECT id FROM permissions WHERE key = 'user.update')),
+
+-- บทบาท (Roles API)
+('GET', '^/api/admin/roles$', (SELECT id FROM permissions WHERE key = 'role.read')),
+('POST', '^/api/admin/roles$', (SELECT id FROM permissions WHERE key = 'role.create')),
+('PUT', '^/api/admin/roles/[0-9]+$', (SELECT id FROM permissions WHERE key = 'role.update')),
+('DELETE', '^/api/admin/roles/[0-9]+$', (SELECT id FROM permissions WHERE key = 'role.delete')),
+
+-- สิทธิ์ (Permissions API)
+('GET', '^/api/admin/permissions$', (SELECT id FROM permissions WHERE key = 'permission.read')),
+('POST', '^/api/admin/permissions$', (SELECT id FROM permissions WHERE key = 'permission.create')),
+('PUT', '^/api/admin/permissions/[0-9]+$', (SELECT id FROM permissions WHERE key = 'permission.update')),
+('DELETE', '^/api/admin/permissions/[0-9]+$', (SELECT id FROM permissions WHERE key = 'permission.delete')),
+
+-- ACL Matrix API
+('GET', '^/api/admin/acl$', (SELECT id FROM permissions WHERE key = 'acl.manage')),
+('POST', '^/api/admin/acl$', (SELECT id FROM permissions WHERE key = 'acl.manage')),
+
+-- Endpoint Permissions API
+('GET', '^/api/admin/endpoints$', (SELECT id FROM permissions WHERE key = 'endpoint.manage')),
+('GET', '^/api/admin/endpoint-permissions$', (SELECT id FROM permissions WHERE key = 'endpoint.manage')),
+('POST', '^/api/admin/endpoint-permissions$', (SELECT id FROM permissions WHERE key = 'endpoint.manage')),
+('DELETE', '^/api/admin/endpoint-permissions/[0-9]+$', (SELECT id FROM permissions WHERE key = 'endpoint.manage')),
+
+-- Audit Logs & Reports
+('GET', '^/api/admin/logs$', (SELECT id FROM permissions WHERE key = 'log.view')),
+('GET', '^/api/admin/stats$', (SELECT id FROM permissions WHERE key = 'user.read')),
+('GET', '^/api/reports/usage$', (SELECT id FROM permissions WHERE key = 'report.usage'))
 ON CONFLICT (method, path_pattern) DO NOTHING;
+
 
